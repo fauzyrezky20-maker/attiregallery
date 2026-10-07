@@ -78,12 +78,12 @@ export const savePermissionsAction = safeAction(async (fd) => {
   const user = await requireUser("pengaturan");
   if (user.role !== "pemilik") throw new BizError("Hanya pemilik yang boleh mengubah hak akses.");
   const keys = MENUS.map((m) => m.key);
-  db.transaction((tx) => {
-    tx.delete(schema.rolePermissions).run();
+  await db.transaction(async (tx) => {
+    await tx.delete(schema.rolePermissions).run();
     for (const role of ["kasir", "staf"] as const) {
       const menus = new Set<MenuKey>(["dasbor"]);
       for (const k of keys) if (fd.get(`${role}:${k}`) === "on") menus.add(k);
-      for (const menu of menus) tx.insert(schema.rolePermissions).values({ role, menu }).run();
+      for (const menu of menus) await tx.insert(schema.rolePermissions).values({ role, menu }).run();
     }
   });
   revalidatePath("/", "layout");

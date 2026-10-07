@@ -24,8 +24,8 @@ export async function getOrderDetail(id: string) {
   ]);
   const days = rentalDays(order.rentalStart, order.rentalEnd);
   const subtotal = items.reduce((t, i) => t + i.price * i.quantity * days, 0);
-  const paid = paidAmount(db, id);
-  const pending = pendingAmount(db, id);
+  const paid = await paidAmount(db, id);
+  const pending = await pendingAmount(db, id);
   const deposit = await db.query.customerDeposits.findFirst({ where: eq(s.customerDeposits.customerId, order.customerId) });
   return {
     order, customer: customer!, items, payments: pays, consent, staffName: staff?.name ?? null, fittings, measures,

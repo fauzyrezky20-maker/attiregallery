@@ -61,13 +61,13 @@ export async function checkAvailabilityAction(start: string, days: number) {
   await requireUser("kasir");
   const end = addDays(start, Math.max(1, days));
   const prods = await db.select({ id: schema.products.id }).from(schema.products);
-  return Object.fromEntries(prods.map((p) => [p.id, availableQty(db, p.id, start, end)]));
+  return Object.fromEntries(await Promise.all(prods.map(async (p) => [p.id, await availableQty(db, p.id, start, end)] as const)));
 }
 
 export const pickupAction = safeAction(async (fd) => {
   await requireUser("pesanan");
   const id = String(fd.get("orderId"));
-  markPickedUp(id);
+  await markPickedUp(id);
   revalidateAll();
   redirect(`/pesanan/${id}?info=${encodeURIComponent("Kebaya sudah diambil. Pesanan sedang disewa.")}`);
 });
@@ -84,7 +84,7 @@ export const returnAction = safeAction(async (fd) => {
 export const cancelAction = safeAction(async (fd) => {
   await requireUser("pesanan");
   const id = String(fd.get("orderId"));
-  cancelOrder(id);
+  await cancelOrder(id);
   revalidateAll();
   redirect(`/pesanan/${id}?info=${encodeURIComponent("Pesanan dibatalkan.")}`);
 });
@@ -92,7 +92,7 @@ export const cancelAction = safeAction(async (fd) => {
 export const updateOrderAction = safeAction(async (fd) => {
   await requireUser("pesanan");
   const rentalStart = String(fd.get("rentalStart"));
-  updateOrderDetails(String(fd.get("orderId")), {
+  await updateOrderDetails(String(fd.get("orderId")), {
     rentalStart,
     rentalEnd: addDays(rentalStart, Math.max(1, toInt(fd.get("days"), 1))),
     discount: toInt(fd.get("discount")),
@@ -108,7 +108,7 @@ export const addPaymentAction = safeAction(async (fd) => {
   const method = String(fd.get("method")) as PaymentMethod;
   if (!PAYMENT_METHODS.includes(method)) throw new BizError("Metode pembayaran tidak dikenal.");
   const proofUrl = await saveUpload(fd.get("proof"), "bukti");
-  const p = db.transaction((tx) =>
+  const p = await db.transaction((tx) =>
     recordPayment(tx, orderId, {
       method,
       amount: toInt(fd.get("amount")),

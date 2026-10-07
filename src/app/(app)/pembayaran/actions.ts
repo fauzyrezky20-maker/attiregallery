@@ -12,19 +12,19 @@ export const confirmPaymentAction = safeAction(async (fd) => {
   await requireUser("pembayaran");
   const id = String(fd.get("paymentId"));
   const proofUrl = await saveUpload(fd.get("proof"), "bukti");
-  const res = db
+  const res = await db
     .update(schema.payments)
     .set({ status: "lunas", paidAt: new Date(), ...(proofUrl ? { proofUrl } : {}) })
     .where(and(eq(schema.payments.id, id), eq(schema.payments.status, "pending")))
     .run();
-  if (res.changes === 0) throw new BizError("Pembayaran sudah diproses sebelumnya.");
+  if (res.rowsAffected === 0) throw new BizError("Pembayaran sudah diproses sebelumnya.");
   revalidatePath("/", "layout");
   return { ok: "Pembayaran ditandai lunas." };
 });
 
 export const rejectPaymentAction = safeAction(async (fd) => {
   await requireUser("pembayaran");
-  db.update(schema.payments)
+  await db.update(schema.payments)
     .set({ status: "gagal" })
     .where(and(eq(schema.payments.id, String(fd.get("paymentId"))), eq(schema.payments.status, "pending")))
     .run();

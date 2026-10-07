@@ -7,15 +7,16 @@ import { getSettings } from "./settings";
 import { todayStr } from "./utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Q = Tx | typeof db;
 const { orders, orderItems, products, payments, customerDeposits, depositTransactions, termsConsents } = schema;
 
 export class BizError extends Error {}
 
 /** Jumlah unit yang masih bisa disewa untuk rentang tanggal tertentu (memperhitungkan pesanan lain). */
-export function availableQty(tx: Tx | typeof db, productId: string, start: string, end: string, excludeOrderId?: string) {
-  const p = tx.select().from(products).where(eq(products.id, productId)).get();
+export async function availableQty(tx: Q, productId: string, start: string, end: string, excludeOrderId?: string) {
+  const p = await tx.select().from(products).where(eq(products.id, productId)).get();
   if (!p || p.status === "perawatan") return 0;
-  const booked = tx
+  const booked = await tx
     .select({ qty: sql<number>`coalesce(sum(${orderItems.quantity}), 0)` })
     .from(orderItems)
     .innerJoin(orders, eq(orders.id, orderItems.orderId))
@@ -33,15 +34,15 @@ export function availableQty(tx: Tx | typeof db, productId: string, start: strin
 }
 
 /** Perbarui status produk berdasarkan stok yang ada di toko. */
-function syncProductStatus(tx: Tx, productId: string) {
-  const p = tx.select().from(products).where(eq(products.id, productId)).get();
+async function syncProductStatus(tx: Tx, productId: string) {
+  const p = await tx.select().from(products).where(eq(products.id, productId)).get();
   if (!p || p.status === "perawatan") return;
   const status = p.stockAvailable > 0 ? "tersedia" : "disewa";
-  if (status !== p.status) tx.update(products).set({ status }).where(eq(products.id, productId)).run();
+  if (status !== p.status) await tx.update(products).set({ status }).where(eq(products.id, productId)).run();
 }
 
-export function paidAmount(tx: Tx | typeof db, orderId: string) {
-  const r = tx
+export async function paidAmount(tx: Q, orderId: string) {
+  const r = await tx
     .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
     .from(payments)
     .where(and(eq(payments.orderId, orderId), eq(payments.status, "lunas")))
@@ -49,8 +50,8 @@ export function paidAmount(tx: Tx | typeof db, orderId: string) {
   return Number(r?.total ?? 0);
 }
 
-export function pendingAmount(tx: Tx | typeof db, orderId: string) {
-  const r = tx
+export async function pendingAmount(tx: Q, orderId: string) {
+  const r = await tx
     .select({ total: sql<number>`coalesce(sum(${payments.amount}), 0)` })
     .from(payments)
     .where(and(eq(payments.orderId, orderId), eq(payments.status, "pending")))
@@ -59,19 +60,19 @@ export function pendingAmount(tx: Tx | typeof db, orderId: string) {
 }
 
 /** Pakai saldo tabungan pelanggan (dalam transaksi). */
-export function spendDeposit(tx: Tx, customerId: string, amount: number, orderId: string | null, note: string) {
-  const dep = tx.select().from(customerDeposits).where(eq(customerDeposits.customerId, customerId)).get();
+export async function spendDeposit(tx: Tx, customerId: string, amount: number, orderId: string | null, note: string) {
+  const dep = await tx.select().from(customerDeposits).where(eq(customerDeposits.customerId, customerId)).get();
   if (!dep || dep.balance < amount) throw new BizError("Saldo tabungan pelanggan tidak cukup.");
-  tx.update(customerDeposits).set({ balance: dep.balance - amount }).where(eq(customerDeposits.id, dep.id)).run();
-  tx.insert(depositTransactions).values({ customerId, orderId, type: "pakai", amount, note }).run();
+  await tx.update(customerDeposits).set({ balance: dep.balance - amount }).where(eq(customerDeposits.id, dep.id)).run();
+  await tx.insert(depositTransactions).values({ customerId, orderId, type: "pakai", amount, note }).run();
 }
 
-export function topUpDeposit(tx: Tx, customerId: string, amount: number, note: string | null) {
+export async function topUpDeposit(tx: Tx, customerId: string, amount: number, note: string | null) {
   if (amount <= 0) throw new BizError("Nominal setoran harus lebih dari 0.");
-  const dep = tx.select().from(customerDeposits).where(eq(customerDeposits.customerId, customerId)).get();
-  if (dep) tx.update(customerDeposits).set({ balance: dep.balance + amount }).where(eq(customerDeposits.id, dep.id)).run();
-  else tx.insert(customerDeposits).values({ customerId, balance: amount }).run();
-  tx.insert(depositTransactions).values({ customerId, type: "setor", amount, note }).run();
+  const dep = await tx.select().from(customerDeposits).where(eq(customerDeposits.customerId, customerId)).get();
+  if (dep) await tx.update(customerDeposits).set({ balance: dep.balance + amount }).where(eq(customerDeposits.id, dep.id)).run();
+  else await tx.insert(customerDeposits).values({ customerId, balance: amount }).run();
+  await tx.insert(depositTransactions).values({ customerId, type: "setor", amount, note }).run();
 }
 
 export type PaymentInput = { method: PaymentMethod; amount: number; proofUrl?: string | null; note?: string | null };
@@ -80,17 +81,17 @@ export type PaymentInput = { method: PaymentMethod; amount: number; proofUrl?: s
  * Catat pembayaran. Tunai & tabungan langsung lunas; QRIS & transfer menunggu konfirmasi
  * kecuali `confirmed` (mis. kasir sudah melihat notifikasi dana masuk).
  */
-export function recordPayment(tx: Tx, orderId: string, p: PaymentInput & { confirmed?: boolean }) {
+export async function recordPayment(tx: Tx, orderId: string, p: PaymentInput & { confirmed?: boolean }) {
   if (p.amount <= 0) throw new BizError("Nominal pembayaran harus lebih dari 0.");
-  const order = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+  const order = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
   if (!order) throw new BizError("Pesanan tidak ditemukan.");
-  const outstanding = order.totalAmount - paidAmount(tx, orderId) - pendingAmount(tx, orderId);
+  const outstanding = order.totalAmount - (await paidAmount(tx, orderId)) - (await pendingAmount(tx, orderId));
   if (p.method === "tabungan") {
     if (p.amount > outstanding) throw new BizError("Pemakaian saldo melebihi sisa tagihan.");
-    spendDeposit(tx, order.customerId, p.amount, orderId, "Bayar pesanan");
+    await spendDeposit(tx, order.customerId, p.amount, orderId, "Bayar pesanan");
   }
   const lunas = p.method === "tunai" || p.method === "tabungan" || p.confirmed;
-  return tx
+  return await tx
     .insert(payments)
     .values({
       orderId,
@@ -123,18 +124,19 @@ export async function createOrder(input: NewOrderInput) {
   if (input.rentalEnd < input.rentalStart) throw new BizError("Tanggal kembali tidak boleh sebelum tanggal ambil.");
   if (!input.agreeTerms) throw new BizError("Pelanggan harus menyetujui Syarat & Ketentuan sewa.");
 
-  return db.transaction((tx) => {
-    const lines = input.items.map((it) => {
-      const p = tx.select().from(products).where(eq(products.id, it.productId)).get();
+  return db.transaction(async (tx) => {
+    const lines: { productId: string; quantity: number; price: number }[] = [];
+    for (const it of input.items) {
+      const p = await tx.select().from(products).where(eq(products.id, it.productId)).get();
       if (!p) throw new BizError("Produk tidak ditemukan.");
-      const avail = availableQty(tx, p.id, input.rentalStart, input.rentalEnd);
+      const avail = await availableQty(tx, p.id, input.rentalStart, input.rentalEnd);
       if (it.quantity > avail) throw new BizError(`Stok "${p.name}" untuk tanggal tersebut tinggal ${avail}.`);
-      return { productId: p.id, quantity: it.quantity, price: p.pricePerDay };
-    });
+      lines.push({ productId: p.id, quantity: it.quantity, price: p.pricePerDay });
+    }
     const days = rentalDays(input.rentalStart, input.rentalEnd);
     const subtotal = calcSubtotal(lines, days);
     const discount = Math.min(Math.max(0, input.discount), subtotal);
-    const order = tx
+    const order = await tx
       .insert(orders)
       .values({
         customerId: input.customerId,
@@ -148,9 +150,9 @@ export async function createOrder(input: NewOrderInput) {
       })
       .returning()
       .get();
-    for (const l of lines) tx.insert(orderItems).values({ ...l, orderId: order.id }).run();
-    tx.insert(termsConsents).values({ orderId: order.id, customerId: input.customerId, termsVersion: settings.termsVersion }).run();
-    if (input.payment && input.payment.amount > 0) recordPayment(tx, order.id, input.payment);
+    for (const l of lines) await tx.insert(orderItems).values({ ...l, orderId: order.id }).run();
+    await tx.insert(termsConsents).values({ orderId: order.id, customerId: input.customerId, termsVersion: settings.termsVersion }).run();
+    if (input.payment && input.payment.amount > 0) await recordPayment(tx, order.id, input.payment);
     return order;
   });
 }
@@ -160,39 +162,41 @@ export function orderSubtotal(items: { price: number; quantity: number }[], star
 }
 
 /** Kebaya diambil pelanggan → stok di toko berkurang. */
-export function markPickedUp(orderId: string) {
-  return db.transaction((tx) => {
-    const o = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+export async function markPickedUp(orderId: string) {
+  return db.transaction(async (tx) => {
+    const o = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!o || o.status !== "baru") throw new BizError("Hanya pesanan berstatus Baru yang bisa ditandai diambil.");
-    const items = tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
     for (const it of items) {
-      const p = tx.select().from(products).where(eq(products.id, it.productId)).get()!;
+      const p = await tx.select().from(products).where(eq(products.id, it.productId)).get();
+      if (!p) throw new BizError("Produk tidak ditemukan.");
       if (p.stockAvailable < it.quantity) throw new BizError(`Unit "${p.name}" di toko tidak cukup (tersisa ${p.stockAvailable}).`);
-      tx.update(products).set({ stockAvailable: p.stockAvailable - it.quantity }).where(eq(products.id, p.id)).run();
-      syncProductStatus(tx, p.id);
+      await tx.update(products).set({ stockAvailable: p.stockAvailable - it.quantity }).where(eq(products.id, p.id)).run();
+      await syncProductStatus(tx, p.id);
     }
-    tx.update(orders).set({ status: "disewa" }).where(eq(orders.id, orderId)).run();
+    await tx.update(orders).set({ status: "disewa" }).where(eq(orders.id, orderId)).run();
   });
 }
 
 /** Kebaya dikembalikan → hitung denda keterlambatan, stok kembali. */
 export async function markReturned(orderId: string, returnDate = todayStr()) {
   const settings = await getSettings();
-  return db.transaction((tx) => {
-    const o = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+  return db.transaction(async (tx) => {
+    const o = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!o || o.status !== "disewa") throw new BizError("Hanya pesanan yang sedang disewa yang bisa ditandai kembali.");
-    const items = tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
     for (const it of items) {
-      const p = tx.select().from(products).where(eq(products.id, it.productId)).get()!;
-      tx.update(products)
+      const p = await tx.select().from(products).where(eq(products.id, it.productId)).get();
+      if (!p) continue;
+      await tx.update(products)
         .set({ stockAvailable: Math.min(p.stockTotal, p.stockAvailable + it.quantity) })
         .where(eq(products.id, p.id))
         .run();
-      syncProductStatus(tx, p.id);
+      await syncProductStatus(tx, p.id);
     }
     const { fine, lateDays } = calcFine(o.rentalEnd, returnDate, settings.finePerDay);
     const subtotal = orderSubtotal(items, o.rentalStart, o.rentalEnd);
-    tx.update(orders)
+    await tx.update(orders)
       .set({ status: "selesai", returnedAt: returnDate, fine, totalAmount: calcTotal(subtotal, o.discount, fine) })
       .where(eq(orders.id, orderId))
       .run();
@@ -200,30 +204,30 @@ export async function markReturned(orderId: string, returnDate = todayStr()) {
   });
 }
 
-export function cancelOrder(orderId: string) {
-  return db.transaction((tx) => {
-    const o = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+export async function cancelOrder(orderId: string) {
+  return db.transaction(async (tx) => {
+    const o = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!o || o.status !== "baru") throw new BizError("Hanya pesanan berstatus Baru yang bisa dibatalkan.");
-    tx.update(orders).set({ status: "dibatalkan" }).where(eq(orders.id, orderId)).run();
-    tx.update(payments).set({ status: "gagal" }).where(and(eq(payments.orderId, orderId), eq(payments.status, "pending"))).run();
+    await tx.update(orders).set({ status: "dibatalkan" }).where(eq(orders.id, orderId)).run();
+    await tx.update(payments).set({ status: "gagal" }).where(and(eq(payments.orderId, orderId), eq(payments.status, "pending"))).run();
   });
 }
 
 /** Ubah tanggal/diskon/catatan pesanan yang belum selesai; total dihitung ulang. */
-export function updateOrderDetails(orderId: string, data: { rentalStart: string; rentalEnd: string; discount: number; notes: string | null }) {
-  return db.transaction((tx) => {
-    const o = tx.select().from(orders).where(eq(orders.id, orderId)).get();
+export async function updateOrderDetails(orderId: string, data: { rentalStart: string; rentalEnd: string; discount: number; notes: string | null }) {
+  return db.transaction(async (tx) => {
+    const o = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!o) throw new BizError("Pesanan tidak ditemukan.");
     if (o.status === "selesai" || o.status === "dibatalkan") throw new BizError("Pesanan yang sudah selesai/dibatalkan tidak bisa diubah.");
     if (data.rentalEnd < data.rentalStart) throw new BizError("Tanggal kembali tidak boleh sebelum tanggal ambil.");
-    const items = tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId)).all();
     for (const it of items) {
-      const avail = availableQty(tx, it.productId, data.rentalStart, data.rentalEnd, orderId);
+      const avail = await availableQty(tx, it.productId, data.rentalStart, data.rentalEnd, orderId);
       if (it.quantity > avail) throw new BizError("Stok kebaya tidak cukup untuk tanggal baru tersebut.");
     }
     const subtotal = orderSubtotal(items, data.rentalStart, data.rentalEnd);
     const discount = Math.min(Math.max(0, data.discount), subtotal);
-    tx.update(orders)
+    await tx.update(orders)
       .set({ ...data, discount, totalAmount: calcTotal(subtotal, discount, o.fine) })
       .where(eq(orders.id, orderId))
       .run();

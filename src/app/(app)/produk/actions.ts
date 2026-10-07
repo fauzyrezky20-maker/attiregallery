@@ -2,13 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { safeAction } from "@/lib/action";
 import { requireUser } from "@/lib/session";
-import { saveUpload, UPLOAD_DIR } from "@/lib/upload";
+import { deleteUpload, saveUpload } from "@/lib/upload";
 import { BizError } from "@/lib/orders";
 import { str, toInt } from "@/lib/utils";
 
@@ -61,9 +59,9 @@ export const setPrimaryPhotoAction = safeAction(async (fd) => {
   const photoId = String(fd.get("photoId"));
   const photo = await db.query.productPhotos.findFirst({ where: eq(productPhotos.id, photoId) });
   if (!photo) throw new BizError("Foto tidak ditemukan.");
-  db.transaction((tx) => {
-    tx.update(productPhotos).set({ isPrimary: false }).where(eq(productPhotos.productId, photo.productId)).run();
-    tx.update(productPhotos).set({ isPrimary: true }).where(eq(productPhotos.id, photoId)).run();
+  await db.transaction(async (tx) => {
+    await tx.update(productPhotos).set({ isPrimary: false }).where(eq(productPhotos.productId, photo.productId)).run();
+    await tx.update(productPhotos).set({ isPrimary: true }).where(eq(productPhotos.id, photoId)).run();
   });
   revalidatePath("/", "layout");
   return { ok: "Foto utama diganti." };
@@ -78,9 +76,7 @@ export const deletePhotoAction = safeAction(async (fd) => {
     const next = await db.query.productPhotos.findFirst({ where: eq(productPhotos.productId, photo.productId) });
     if (next) await db.update(productPhotos).set({ isPrimary: true }).where(eq(productPhotos.id, next.id));
   }
-  if (photo.photoUrl.startsWith("/uploads/")) {
-    await fs.rm(path.join(UPLOAD_DIR, photo.photoUrl.replace("/uploads/", "")), { force: true });
-  }
+  await deleteUpload(photo.photoUrl);
   revalidatePath("/", "layout");
   return { ok: "Foto dihapus." };
 });
@@ -95,6 +91,9 @@ export const deleteProductAction = safeAction(async (fd) => {
     .where(and(eq(orderItems.productId, id)))
     .limit(1);
   if (used.length) throw new BizError("Kebaya ini sudah pernah disewa sehingga tidak bisa dihapus. Ubah statusnya atau jumlah unit menjadi 0.");
+  const photos = await db.select().from(productPhotos).where(eq(productPhotos.productId, id));
+  for (const ph of photos) await deleteUpload(ph.photoUrl);
+  await db.delete(productPhotos).where(eq(productPhotos.productId, id));
   await db.delete(products).where(eq(products.id, id));
   revalidatePath("/", "layout");
   redirect("/produk");

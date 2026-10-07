@@ -4,7 +4,7 @@ Satu aplikasi untuk mengelola pesanan sewa, kasir, koleksi kebaya beserta foto, 
 tabungan pelanggan, karyawan & absensi, serta laporan keuangan.
 
 **Teknologi:** Next.js 15 (App Router + Server Actions) · Tailwind CSS 4 · komponen bergaya shadcn/ui ·
-Drizzle ORM + SQLite (better-sqlite3) · Better Auth (login email & kata sandi, peran pemilik/kasir/staf).
+Drizzle ORM + SQLite/libSQL (lokal atau Turso) · Better Auth (login email & kata sandi, peran pemilik/kasir/staf).
 
 ## Menjalankan
 
@@ -15,7 +15,7 @@ npm run db:seed                   # opsional: isi data contoh
 npm run dev                       # http://localhost:3000
 ```
 
-Database (`data/attiregallery.db`) dibuat dan dimigrasi otomatis saat aplikasi pertama kali jalan.
+Database (`data/attiregallery.db`) dibuat dan dimigrasi otomatis setiap kali aplikasi dijalankan.
 Tanpa data contoh, buka aplikasi lalu buat akun pemilik di halaman **/setup**.
 
 Akun data contoh (kata sandi `attire123`): `pemilik@attiregallery.id`, `kasir@attiregallery.id`, `staf@attiregallery.id`.
@@ -58,6 +58,10 @@ Isi ulang data contoh: `npm run db:seed -- --reset`.
 
 ## Deploy
 
-SQLite dan foto disimpan sebagai file di folder `data/`, jadi butuh server dengan disk tetap
-(VPS, Railway, Render, Fly.io dengan volume). **Vercel tidak menyimpan file secara permanen**; untuk Vercel,
-pindahkan database ke Turso (libSQL) atau PostgreSQL dan foto ke Vercel Blob/S3.
+- **Vercel (gratis):** database Turso + foto di Vercel Blob. Ikuti [PANDUAN-VERCEL.md](PANDUAN-VERCEL.md).
+- **Komputer toko:** lihat [toko/PANDUAN-KOMPUTER-TOKO.md](toko/PANDUAN-KOMPUTER-TOKO.md).
+- **Server sendiri (VPS/Oracle):** lihat [deploy/PANDUAN-ORACLE.md](deploy/PANDUAN-ORACLE.md).
+
+Database memakai libSQL: tanpa `TURSO_DATABASE_URL` aplikasi memakai file SQLite lokal `data/attiregallery.db`.
+Foto memakai Vercel Blob bila `BLOB_READ_WRITE_TOKEN` ada, selain itu disimpan di `data/uploads`.
+Migrasi database berjalan otomatis sebelum `dev`, `build`, dan `start`.

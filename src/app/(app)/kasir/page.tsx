@@ -33,15 +33,15 @@ export default async function KasirPage({ searchParams }: { searchParams: Promis
         defaultDays={settings.defaultRentDays}
         initialCustomerId={sp.pelanggan ?? ""}
         customers={customers.map((c) => ({ ...c, balance: c.balance ?? 0 }))}
-        products={products.map((p) => ({
+        products={await Promise.all(products.map(async (p) => ({
           id: p.id,
           name: p.name,
           category: p.category,
           price: p.pricePerDay,
           status: p.status,
           photo: photoOf.get(p.id) ?? null,
-          available: availableQty(db, p.id, today, end),
-        }))}
+          available: await availableQty(db, p.id, today, end),
+        })))}
         terms={{ text: settings.termsText ?? "", version: settings.termsVersion }}
         methods={{ tunai: settings.cashEnabled, qris: settings.qrisEnabled && !!settings.qrisPayload, transfer: settings.transferEnabled }}
         transferInfo={settings.transferInfo}

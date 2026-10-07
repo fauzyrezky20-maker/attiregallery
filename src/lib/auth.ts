@@ -8,8 +8,12 @@ import { db, schema } from "@/db";
 // jadi alamat dasar dibaca dari tiap permintaan. Isi AUTH_ALLOWED_HOSTS (dipisah koma, boleh pakai *).
 const allowedHosts = process.env.AUTH_ALLOWED_HOSTS?.split(",").map((h) => h.trim()).filter(Boolean);
 
+// Di Vercel, alamat produksi tersedia otomatis sehingga BETTER_AUTH_URL tidak wajib diisi.
+const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined;
+
 export const auth = betterAuth({
   appName: "AttireGallery",
+  baseURL: process.env.BETTER_AUTH_URL ?? vercelUrl,
   ...(allowedHosts?.length
     ? {
         baseURL: { allowedHosts, fallback: process.env.BETTER_AUTH_URL ?? "http://localhost:3000" },

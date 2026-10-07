@@ -12,9 +12,9 @@ export async function createLoginUser(input: { name: string; email: string; pass
   if (input.password.length < 6) throw new Error("Kata sandi minimal 6 karakter.");
   const hash = await hashPassword(input.password);
   const id = crypto.randomUUID();
-  db.transaction((tx) => {
-    tx.insert(schema.users).values({ id, name: input.name, email, role: input.role, emailVerified: true }).run();
-    tx.insert(schema.accounts).values({ accountId: id, providerId: "credential", userId: id, password: hash }).run();
+  await db.transaction(async (tx) => {
+    await tx.insert(schema.users).values({ id, name: input.name, email, role: input.role, emailVerified: true }).run();
+    await tx.insert(schema.accounts).values({ accountId: id, providerId: "credential", userId: id, password: hash }).run();
   });
   return id;
 }

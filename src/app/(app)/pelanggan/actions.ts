@@ -68,11 +68,11 @@ export const depositAction = safeAction(async (fd) => {
   const type = String(fd.get("type"));
   const amount = toInt(fd.get("amount"));
   const note = str(fd.get("note"));
-  db.transaction((tx) => {
+  await db.transaction(async (tx) => {
     if (type === "pakai") {
       if (amount <= 0) throw new BizError("Nominal harus lebih dari 0.");
-      spendDeposit(tx, customerId, amount, null, note ?? "Penarikan / pemakaian saldo");
-    } else topUpDeposit(tx, customerId, amount, note);
+      await spendDeposit(tx, customerId, amount, null, note ?? "Penarikan / pemakaian saldo");
+    } else await topUpDeposit(tx, customerId, amount, note);
   });
   revalidatePath("/", "layout");
   return { ok: type === "pakai" ? "Pemakaian saldo dicatat." : "Setoran tabungan dicatat." };
