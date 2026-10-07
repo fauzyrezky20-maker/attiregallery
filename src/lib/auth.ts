@@ -4,8 +4,22 @@ import { nextCookies } from "better-auth/next-js";
 import { and, eq } from "drizzle-orm";
 import { db, schema } from "@/db";
 
+// Mode komputer toko: aplikasi dibuka lewat beberapa alamat (localhost, IP Wi-Fi toko, tautan tunnel),
+// jadi alamat dasar dibaca dari tiap permintaan. Isi AUTH_ALLOWED_HOSTS (dipisah koma, boleh pakai *).
+const allowedHosts = process.env.AUTH_ALLOWED_HOSTS?.split(",").map((h) => h.trim()).filter(Boolean);
+
 export const auth = betterAuth({
   appName: "AttireGallery",
+  ...(allowedHosts?.length
+    ? {
+        baseURL: { allowedHosts, fallback: process.env.BETTER_AUTH_URL ?? "http://localhost:3000" },
+        trustedOrigins: (request?: Request) => {
+          const host = request?.headers.get("host");
+          if (!host) return [];
+          return [`http://${host}`, `https://${host}`];
+        },
+      }
+    : {}),
   database: drizzleAdapter(db, {
     provider: "sqlite",
     schema: {
@@ -27,7 +41,11 @@ export const auth = betterAuth({
     },
   },
   session: { expiresIn: 60 * 60 * 24 * 30 },
-  advanced: { database: { generateId: "uuid" } },
+  advanced: {
+    database: { generateId: "uuid" },
+    // Di jaringan Wi-Fi toko aplikasi dibuka lewat http://IP-komputer, jadi cookie tidak boleh berlabel Secure.
+    ...(process.env.LOCAL_NETWORK_MODE === "1" ? { useSecureCookies: false } : {}),
+  },
   databaseHooks: {
     session: {
       create: {

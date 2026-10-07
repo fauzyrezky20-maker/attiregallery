@@ -42,3 +42,6 @@ next-env.d.ts
 
 # database & unggahan lokal
 /data
+
+# cloudflared yang diunduh otomatis
+/toko/cloudflared.exe
