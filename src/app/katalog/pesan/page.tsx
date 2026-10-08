@@ -67,7 +67,7 @@ export default async function KatalogPesan({ searchParams }: {
     sp.nama ? `Nama: ${sp.nama}` : null,
     sp.acara ? `Acara / kampus: ${sp.acara}` : null,
     `Perkiraan total: ${rupiah(total)}`,
-    `Saya siap DP ${rupiah(Math.min(settings.dpAmount, total))} untuk fix booking. Apakah bisa?`,
+    `Untuk fix booking DP ${Math.min(settings.dpAmount, total).toLocaleString("id-ID")}, apakah bisa?`,
   ].filter(Boolean).join("\n");
   const wa = waLink(settings.phone, text);
 
