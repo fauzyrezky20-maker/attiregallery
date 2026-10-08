@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { ActionForm, SubmitButton } from "@/components/action-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +22,19 @@ export default async function PengaturanPage() {
     <>
       <PageHeader title="Pengaturan Toko" />
       <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Katalog untuk pelanggan</CardTitle>
+            <CardDescription>
+              Halaman tanpa login berisi foto, harga, dan ketersediaan kebaya. Pelanggan bisa cek tanggal lalu pesan lewat WhatsApp
+              {s.phone ? ` ke ${s.phone}` : " (isi dulu No. telepon / WhatsApp di Profil toko)"}. Data pesanan, pelanggan, dan keuangan tidak ikut terlihat.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/katalog" target="_blank" className="font-medium text-primary hover:underline">Buka katalog</Link>
+            <span className="text-sm text-muted-foreground"> · bagikan alamat halaman ini ke pelanggan (misalnya di bio Instagram atau WhatsApp).</span>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader><CardTitle>Profil toko</CardTitle></CardHeader>
           <CardContent>

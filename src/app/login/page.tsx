@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasAnyUser } from "@/lib/users";
 import { getSession } from "@/lib/session";
@@ -26,6 +27,9 @@ export default async function LoginPage() {
           <p className="text-sm text-muted-foreground">Masuk untuk mengelola toko</p>
         </div>
         <LoginForm />
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Pelanggan? <Link href="/katalog" className="font-medium text-primary hover:underline">Lihat katalog kebaya</Link>
+        </p>
       </div>
     </main>
   );
