@@ -27,6 +27,9 @@ export async function saveUpload(file: FormDataEntryValue | null, folder: "produ
     const blob = await put(`${folder}/${name}`, file, { access: "public", contentType: file.type });
     return blob.url;
   }
+  if (process.env.VERCEL) {
+    throw new Error("Penyimpanan foto belum aktif. Di Vercel buka Storage, buat Blob, sambungkan ke proyek ini, lalu Redeploy.");
+  }
   const dir = path.join(UPLOAD_DIR, folder);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
