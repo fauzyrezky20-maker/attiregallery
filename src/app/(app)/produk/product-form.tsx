@@ -14,7 +14,7 @@ export function ProductForm({ product, categories }: { product: P; categories: s
         <datalist id="kategori">{categories.map((c) => <option key={c} value={c} />)}</datalist>
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Harga sewa / hari (Rp)"><Input name="pricePerDay" type="number" min={0} step={1000} defaultValue={product?.pricePerDay ?? ""} required /></Field>
+        <Field label="Harga sewa per 3 hari (Rp)"><Input name="pricePerDay" type="number" min={0} step={1000} defaultValue={product?.pricePerDay ?? ""} required /></Field>
         <Field label="Jumlah unit"><Input name="stockTotal" type="number" min={0} defaultValue={product?.stockTotal ?? 1} required /></Field>
       </div>
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="maintenance" defaultChecked={product?.status === "perawatan"} className="size-4" /> Sedang perawatan (laundry/perbaikan) — tidak bisa disewa</label>

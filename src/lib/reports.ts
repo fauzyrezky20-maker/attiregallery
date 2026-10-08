@@ -3,7 +3,7 @@ import { and, asc, between, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { addDays, todayStr } from "./utils";
 
-const { payments, orders, customers, expenses, depositTransactions } = schema;
+const { payments, orders, customers, expenses } = schema;
 
 export const jakartaStart = (d: string) => new Date(d + "T00:00:00+07:00");
 
@@ -33,7 +33,7 @@ export async function financeReport(from: string, to: string) {
   const end = jakartaStart(addDays(to, 1));
   const paidInRange = and(eq(payments.status, "lunas"), gte(payments.paidAt, start), lt(payments.paidAt, end));
 
-  const [incomeByMethod, incomeByDay, expenseRows, expenseByDay, sales, depositIn] = await Promise.all([
+  const [incomeByMethod, incomeByDay, expenseRows, expenseByDay, sales] = await Promise.all([
     db.select({ method: payments.method, total: sql<number>`sum(${payments.amount})`, count: sql<number>`count(*)` }).from(payments).where(paidInRange).groupBy(payments.method),
     db.select({ day: dayExpr, total: sql<number>`sum(${payments.amount})` }).from(payments).where(paidInRange).groupBy(dayExpr),
     db.select().from(expenses).where(between(expenses.date, from, to)).orderBy(desc(expenses.date), desc(expenses.createdAt)),
@@ -48,10 +48,6 @@ export async function financeReport(from: string, to: string) {
       .innerJoin(customers, eq(customers.id, orders.customerId))
       .where(paidInRange)
       .orderBy(asc(payments.paidAt)),
-    db
-      .select({ total: sql<number>`coalesce(sum(${depositTransactions.amount}), 0)` })
-      .from(depositTransactions)
-      .where(and(eq(depositTransactions.type, "setor"), gte(depositTransactions.createdAt, start), lt(depositTransactions.createdAt, end))),
   ]);
 
   const income = incomeByMethod.reduce((s, r) => s + Number(r.total), 0);
@@ -62,17 +58,17 @@ export async function financeReport(from: string, to: string) {
 
   const inc = new Map(incomeByDay.map((r) => [r.day, Number(r.total)]));
   const exp = new Map(expenseByDay.map((r) => [r.day, Number(r.total)]));
-  const daily: { day: string; income: number; expense: number; profit: number }[] = [];
+  const daily: { day: string; income: number; expense: number }[] = [];
   for (let d = from; d <= to; d = addDays(d, 1)) {
     const i = inc.get(d) ?? 0;
     const e = exp.get(d) ?? 0;
-    daily.push({ day: d, income: i, expense: e, profit: i - e });
+    daily.push({ day: d, income: i, expense: e });
   }
 
   return {
-    from, to, income, expense, profit: income - expense,
+    from, to, income, expense,
     incomeByMethod: incomeByMethod.map((r) => ({ ...r, total: Number(r.total), count: Number(r.count) })),
-    expenseByCategory, expenseRows, daily, sales, depositIn: Number(depositIn[0]?.total ?? 0),
+    expenseByCategory, expenseRows, daily, sales,
   };
 }
 

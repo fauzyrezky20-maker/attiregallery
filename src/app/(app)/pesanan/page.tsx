@@ -11,6 +11,7 @@ import { Input, Select } from "@/components/ui/input";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireUser } from "@/lib/session";
 import { fmtDate, rupiah } from "@/lib/utils";
+import { payState } from "@/lib/pricing";
 
 const { orders, customers, payments } = schema;
 
@@ -43,7 +44,7 @@ export default async function PesananPage({ searchParams }: { searchParams: Prom
     <>
       <PageHeader
         title="Pesanan"
-        description="Semua pesanan sewa kebaya."
+        description="Semua pesanan sewa."
         actions={
           <>
             <Button asChild variant="outline"><Link href="/pesanan/jadwal"><CalendarDays /> Jadwal ambil & kembali</Link></Button>
@@ -65,7 +66,7 @@ export default async function PesananPage({ searchParams }: { searchParams: Prom
             <Empty>Belum ada pesanan.</Empty>
           ) : (
             <Table>
-              <THead><TR><TH>No.</TH><TH>Pelanggan</TH><TH>Kebaya</TH><TH>Ambil</TH><TH>Kembali</TH><TH>Status</TH><TH className="text-right">Total</TH><TH>Bayar</TH></TR></THead>
+              <THead><TR><TH>No.</TH><TH>Pelanggan</TH><TH>Item</TH><TH>Ambil</TH><TH>Kembali</TH><TH>Status</TH><TH className="text-right">Total</TH><TH>Bayar</TH></TR></THead>
               <TBody>
                 {rows.map((r) => (
                   <TR key={r.id}>
@@ -76,7 +77,7 @@ export default async function PesananPage({ searchParams }: { searchParams: Prom
                     <TD className="whitespace-nowrap">{fmtDate(r.end)}</TD>
                     <TD><StatusBadge status={r.status} /></TD>
                     <TD className="text-right whitespace-nowrap">{rupiah(r.total)}</TD>
-                    <TD>{r.status === "dibatalkan" ? null : <StatusBadge status={r.paid >= r.total ? "lunas" : "belum_lunas"} />}</TD>
+                    <TD>{r.status === "dibatalkan" ? null : <StatusBadge status={payState(r.total, r.paid)} />}</TD>
                   </TR>
                 ))}
               </TBody>

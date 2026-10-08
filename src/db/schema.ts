@@ -101,6 +101,10 @@ export const customers = sqliteTable("customers", {
   name: text("name").notNull(),
   phone: text("phone"),
   address: text("address"),
+  /** Jenis acara (mis. Wisuda, Pernikahan) */
+  eventType: text("event_type"),
+  /** Asal kampus (untuk sewa wisuda) */
+  campus: text("campus"),
   createdAt: createdAt(),
 });
 
@@ -145,6 +149,8 @@ export const orders = sqliteTable(
     totalAmount: integer("total_amount").notNull().default(0),
     discount: integer("discount").notNull().default(0),
     fine: integer("fine").notNull().default(0),
+    /** Jam pengambilan (HH:MM), dalam rentang jam ambil toko */
+    pickupTime: text("pickup_time"),
     notes: text("notes"),
     createdAt: createdAt(),
   },
@@ -160,7 +166,7 @@ export const orderItems = sqliteTable("order_items", {
     .notNull()
     .references(() => products.id),
   quantity: integer("quantity").notNull().default(1),
-  /** Harga sewa per hari saat transaksi */
+  /** Harga sewa per paket (lama sewa standar toko) saat transaksi */
   price: integer("price").notNull(),
 });
 
@@ -228,6 +234,8 @@ export const fittingSchedules = sqliteTable("fitting_schedules", {
   scheduledAt: integer("scheduled_at", { mode: "timestamp_ms" }).notNull(),
   status: text("status").$type<(typeof FITTING_STATUS)[number]>().notNull().default("terjadwal"),
   notes: text("notes"),
+  /** Foto konsumen saat fitting */
+  photoUrl: text("photo_url"),
   createdAt: createdAt(),
 });
 
@@ -253,7 +261,7 @@ export const depositTransactions = sqliteTable("deposit_transactions", {
   createdAt: createdAt(),
 });
 
-export const ATTENDANCE_STATUS = ["hadir", "izin", "sakit", "cuti"] as const;
+export const ATTENDANCE_STATUS = ["hadir", "izin", "sakit", "cuti", "tanpa keterangan"] as const;
 export const attendances = sqliteTable(
   "attendances",
   {
@@ -307,5 +315,34 @@ export const storeSettings = sqliteTable("store_settings", {
   lowStockThreshold: integer("low_stock_threshold").notNull().default(1),
   termsText: text("terms_text"),
   termsVersion: text("terms_version").notNull().default("1.0"),
+  /** Tata cara sewa (tampil di Kasir & katalog) */
+  rentalGuide: text("rental_guide"),
+  /** DP minimal untuk fix booking */
+  dpAmount: integer("dp_amount").notNull().default(200000),
+  /** Pelunasan paling lambat H-n sebelum tanggal ambil */
+  settleDaysBefore: integer("settle_days_before").notNull().default(3),
+  /** Jam pengambilan, mis. "16:00"–"20:00" */
+  pickupFrom: text("pickup_from").notNull().default("16:00"),
+  pickupUntil: text("pickup_until").notNull().default("20:00"),
+  instagram: text("instagram"),
+  /** Rekening tujuan tabungan toko & tautan aplikasi m-banking */
+  savingsAccount: text("savings_account"),
+  mbankingUrl: text("mbanking_url"),
   updatedAt: updatedAt(),
 });
+
+/** Tabungan toko: setoran bulanan ke rekening bank toko. */
+export const storeSavings = sqliteTable(
+  "store_savings",
+  {
+    id: id(),
+    date: text("date").notNull(),
+    amount: integer("amount").notNull(),
+    account: text("account"),
+    note: text("note"),
+    proofUrl: text("proof_url"),
+    userId: text("user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("store_savings_date_idx").on(t.date)],
+);

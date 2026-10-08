@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Printer, Ruler, CalendarPlus } from "lucide-react";
+import { Printer, Ruler, CalendarPlus, MessageCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { METHOD_LABEL, StatusBadge } from "@/components/status-badge";
 import { ActionForm, SubmitButton } from "@/components/action-form";
@@ -12,6 +12,7 @@ import { requireUser, getAllowedMenus } from "@/lib/session";
 import { getOrderDetail } from "@/lib/queries";
 import { getSettings } from "@/lib/settings";
 import { calcFine } from "@/lib/pricing";
+import { waLink } from "@/lib/catalog";
 import { fmtDate, fmtDateTime, rupiah, todayStr } from "@/lib/utils";
 import { addPaymentAction, cancelAction, pickupAction, returnAction, updateOrderAction } from "../actions";
 import { confirmPaymentAction } from "../../pembayaran/actions";
@@ -27,7 +28,20 @@ export default async function OrderDetailPage({ params, searchParams }: { params
   const canPay = allowed.includes("pembayaran");
   const { order, customer } = d;
   const today = todayStr();
-  const projected = order.status === "disewa" ? calcFine(order.rentalEnd, today, settings.finePerDay) : null;
+  const projected = order.status === "disewa" ? calcFine(order.rentalEnd, today, d.items) : null;
+  const finePerDay = d.items.reduce((t, i) => t + i.price * i.quantity, 0);
+  const pickupLabel = `${fmtDate(order.rentalStart)}${order.pickupTime ? ` pukul ${order.pickupTime.replace(":", ".")}` : ""}`;
+  const wa = waLink(
+    customer.phone,
+    [
+      `Halo Kak ${customer.name}, kami dari ${settings.storeName} ingin konfirmasi sewa:`,
+      ...d.items.map((i) => `- ${i.name}${i.quantity > 1 ? ` (${i.quantity})` : ""}`),
+      `Pengambilan: ${pickupLabel} (jam ambil ${settings.pickupFrom.replace(":", ".")}–${settings.pickupUntil.replace(":", ".")})`,
+      `Pengembalian: ${fmtDate(order.rentalEnd)}`,
+      d.outstanding > 0 ? `Sisa pelunasan ${rupiah(d.outstanding)}, paling lambat ${fmtDate(d.settleBy)} (H-${settings.settleDaysBefore}).` : "Pembayaran sudah lunas.",
+      "Mohon balas untuk konfirmasi jam pengambilan. Terima kasih 🙏",
+    ].join("\n"),
+  );
   const editable = order.status === "baru" || order.status === "disewa";
 
   return (
@@ -38,6 +52,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
         back="/pesanan"
         actions={
           <>
+            {wa && editable && <Button asChild variant="outline"><a href={wa} target="_blank" rel="noopener noreferrer"><MessageCircle /> Konfirmasi WA</a></Button>}
             <Button asChild variant="outline"><Link href={`/pesanan/${order.id}/nota`}><Printer /> Nota</Link></Button>
             <Button asChild variant="outline"><Link href={`/fitting?pelanggan=${customer.id}&pesanan=${order.id}`}><CalendarPlus /> Jadwal fitting</Link></Button>
             <Button asChild variant="outline"><Link href={`/pelanggan/${customer.id}?pesanan=${order.id}#ukuran`}><Ruler /> Catat ukuran</Link></Button>
@@ -50,24 +65,24 @@ export default async function OrderDetailPage({ params, searchParams }: { params
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>Ringkasan</CardTitle>
-              <StatusBadge status={order.status} />
+              <span className="flex gap-2"><StatusBadge status={d.payState} /><StatusBadge status={order.status} /></span>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-3 text-sm">
-              <div><p className="text-muted-foreground">Pelanggan</p><Link href={`/pelanggan/${customer.id}`} className="font-medium hover:underline">{customer.name}</Link><p>{customer.phone}</p><p className="text-muted-foreground">{customer.address}</p></div>
-              <div><p className="text-muted-foreground">Tanggal ambil</p><p className="font-medium">{fmtDate(order.rentalStart)}</p><p className="mt-2 text-muted-foreground">Tanggal kembali</p><p className="font-medium">{fmtDate(order.rentalEnd)} ({d.days} hari)</p></div>
-              <div><p className="text-muted-foreground">Dikembalikan</p><p className="font-medium">{order.returnedAt ? fmtDate(order.returnedAt) : "-"}</p>{projected && projected.lateDays > 0 && <p className="mt-2 text-destructive">Terlambat {projected.lateDays} hari · denda berjalan {rupiah(projected.fine)}</p>}</div>
+              <div><p className="text-muted-foreground">Pelanggan</p><Link href={`/pelanggan/${customer.id}`} className="font-medium hover:underline">{customer.name}</Link><p>{customer.phone}</p><p className="text-muted-foreground">{customer.address}</p>{(customer.eventType || customer.campus) && <p className="text-muted-foreground">{[customer.eventType, customer.campus].filter(Boolean).join(" · ")}</p>}</div>
+              <div><p className="text-muted-foreground">Ambil</p><p className="font-medium">{pickupLabel}</p><p className="mt-2 text-muted-foreground">Tanggal kembali</p><p className="font-medium">{fmtDate(order.rentalEnd)} ({d.days} hari)</p></div>
+              <div><p className="text-muted-foreground">Dikembalikan</p><p className="font-medium">{order.returnedAt ? fmtDate(order.returnedAt) : "-"}</p>{projected && projected.lateDays > 0 && <p className="mt-2 text-destructive">Terlambat {projected.lateDays} hari · denda berjalan {rupiah(projected.fine)}</p>}{d.outstanding > 0 && order.status !== "dibatalkan" && <><p className="mt-2 text-muted-foreground">Batas pelunasan (H-{settings.settleDaysBefore})</p><p className={`font-medium ${d.settleBy < today ? "text-destructive" : ""}`}>{fmtDate(d.settleBy)}</p></>}</div>
               {order.notes && <p className="sm:col-span-3 rounded-md bg-muted p-3">{order.notes}</p>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle>Kebaya</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Item sewa</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <THead><TR><TH>Kebaya</TH><TH className="text-right">Harga/hari</TH><TH className="text-right">Jumlah</TH><TH className="text-right">Subtotal</TH></TR></THead>
+                <THead><TR><TH>Item</TH><TH className="text-right">Harga/{settings.defaultRentDays} hari</TH><TH className="text-right">Jumlah</TH><TH className="text-right">Subtotal</TH></TR></THead>
                 <TBody>
                   {d.items.map((i) => (
-                    <TR key={i.id}><TD><Link className="hover:underline" href={`/produk/${i.productId}`}>{i.name}</Link><div className="text-xs text-muted-foreground">{i.category}</div></TD><TD className="text-right">{rupiah(i.price)}</TD><TD className="text-right">{i.quantity}</TD><TD className="text-right">{rupiah(i.price * i.quantity * d.days)}</TD></TR>
+                    <TR key={i.id}><TD><Link className="hover:underline" href={`/produk/${i.productId}`}>{i.name}</Link><div className="text-xs text-muted-foreground">{i.category}</div></TD><TD className="text-right">{rupiah(i.price)}</TD><TD className="text-right">{i.quantity}</TD><TD className="text-right">{rupiah(i.price * i.quantity * d.periods)}</TD></TR>
                   ))}
                 </TBody>
               </Table>
@@ -119,13 +134,12 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                         {settings.cashEnabled && <option value="tunai">Tunai</option>}
                         {settings.qrisEnabled && settings.qrisPayload && <option value="qris">QRIS</option>}
                         {settings.transferEnabled && <option value="transfer">Transfer bank</option>}
-                        {d.depositBalance > 0 && <option value="tabungan">Saldo tabungan ({rupiah(d.depositBalance)})</option>}
                       </Select>
                     </Field>
                     <Field label="Nominal"><Input name="amount" type="number" min={1} defaultValue={d.outstanding - d.pending} required /></Field>
                     <Field label="Bukti (opsional)"><Input name="proof" type="file" accept="image/*,application/pdf" /></Field>
                   </div>
-                  <Field label="Catatan"><Input name="note" placeholder="Mis. pelunasan denda" /></Field>
+                  <Field label="Catatan"><Input name="note" defaultValue={d.paid > 0 ? "Pelunasan" : "DP (fix booking)"} /></Field>
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="confirmed" className="size-4" /> QRIS/transfer sudah dicek masuk (langsung lunas)</label>
                   <SubmitButton className="justify-self-start">Simpan pembayaran</SubmitButton>
                 </ActionForm>
@@ -147,7 +161,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               {order.status === "disewa" && (
                 <ActionForm action={returnAction}>
                   <input type="hidden" name="orderId" value={order.id} />
-                  <Field label="Tanggal dikembalikan" hint={`Denda ${rupiah(settings.finePerDay)}/hari setelah ${fmtDate(order.rentalEnd)}`}>
+                  <Field label="Tanggal dikembalikan" hint={`Denda ${rupiah(finePerDay)}/hari (harga sewa) setelah ${fmtDate(order.rentalEnd)}`}>
                     <Input type="date" name="returnDate" defaultValue={today} max={today} min={order.rentalStart} />
                   </Field>
                   <SubmitButton className="w-full">Kebaya sudah kembali → Selesai</SubmitButton>
@@ -164,7 +178,8 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                 <ActionForm action={updateOrderAction}>
                   <input type="hidden" name="orderId" value={order.id} />
                   <Field label="Tanggal ambil"><Input type="date" name="rentalStart" defaultValue={order.rentalStart} required /></Field>
-                  <Field label="Lama sewa (hari)"><Input type="number" name="days" min={1} defaultValue={d.days} required /></Field>
+                  <Field label="Jam ambil"><Input type="time" name="pickupTime" min={settings.pickupFrom} max={settings.pickupUntil} defaultValue={order.pickupTime ?? settings.pickupFrom} /></Field>
+                  <Field label="Lama sewa (hari)" hint="Termasuk hari ambil & kembali"><Input type="number" name="days" min={1} defaultValue={d.days} required /></Field>
                   <Field label="Diskon"><Input type="number" name="discount" min={0} defaultValue={order.discount} /></Field>
                   <Field label="Catatan"><Textarea name="notes" rows={2} defaultValue={order.notes ?? ""} /></Field>
                   <SubmitButton variant="secondary">Simpan perubahan</SubmitButton>

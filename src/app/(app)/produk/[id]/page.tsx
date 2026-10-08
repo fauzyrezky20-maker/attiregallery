@@ -33,7 +33,7 @@ export default async function ProdukDetail({ params }: { params: Promise<{ id: s
 
   return (
     <>
-      <PageHeader title={product.name} description={`${product.category ?? "Tanpa kategori"} · ${rupiah(product.pricePerDay)}/hari`} back="/produk" />
+      <PageHeader title={product.name} description={`${product.category ?? "Tanpa kategori"} · ${rupiah(product.pricePerDay)}/3 hari`} back="/produk" />
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         <div className="grid gap-6 content-start">
           <Card>

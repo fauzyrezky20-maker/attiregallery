@@ -8,7 +8,8 @@ import { safeAction } from "@/lib/action";
 import { cancelOrder, createOrder, markPickedUp, markReturned, recordPayment, updateOrderDetails, availableQty, BizError } from "@/lib/orders";
 import { requireUser } from "@/lib/session";
 import { saveUpload } from "@/lib/upload";
-import { addDays, str, toInt, todayStr } from "@/lib/utils";
+import { str, toInt, todayStr } from "@/lib/utils";
+import { rentalEndDate } from "@/lib/pricing";
 import type { PaymentMethod } from "@/db/schema";
 import { PAYMENT_METHODS } from "@/db/schema";
 
@@ -24,10 +25,15 @@ export const createOrderAction = safeAction(async (fd) => {
     if (!name) throw new BizError("Pilih pelanggan atau isi nama pelanggan baru.");
     const c = await db
       .insert(schema.customers)
-      .values({ name, phone: str(fd.get("newPhone")), address: str(fd.get("newAddress")) })
+      .values({ name, phone: str(fd.get("newPhone")), address: str(fd.get("newAddress")), eventType: str(fd.get("newEventType")), campus: str(fd.get("newCampus")) })
       .returning()
       .get();
     customerId = c.id;
+  } else if (fd.has("eventType")) {
+    // Perbarui jenis acara / asal kampus pelanggan lama bila diisi di kasir.
+    const eventType = str(fd.get("eventType"));
+    const campus = str(fd.get("campus"));
+    if (eventType || campus) await db.update(schema.customers).set({ eventType, campus }).where(eq(schema.customers.id, customerId));
   }
   const items = JSON.parse(String(fd.get("items") ?? "[]")) as { productId: string; quantity: number }[];
   const rentalStart = String(fd.get("rentalStart"));
@@ -39,14 +45,15 @@ export const createOrderAction = safeAction(async (fd) => {
     customerId,
     userId: user.id,
     rentalStart,
-    rentalEnd: addDays(rentalStart, days),
+    rentalEnd: rentalEndDate(rentalStart, days),
     items: items.filter((i) => i.quantity > 0),
     discount: toInt(fd.get("discount")),
     notes: str(fd.get("notes")),
+    pickupTime: str(fd.get("pickupTime")),
     agreeTerms: fd.get("agreeTerms") === "on",
     payment:
       method && PAYMENT_METHODS.includes(method) && amount > 0
-        ? { method, amount, proofUrl, confirmed: fd.get("confirmed") === "on" }
+        ? { method, amount, proofUrl, note: fd.get("payKind") === "lunas" ? "Lunas" : "DP (fix booking)", confirmed: fd.get("confirmed") === "on" }
         : null,
   });
   revalidateAll();
@@ -59,7 +66,7 @@ export const createOrderAction = safeAction(async (fd) => {
 
 export async function checkAvailabilityAction(start: string, days: number) {
   await requireUser("kasir");
-  const end = addDays(start, Math.max(1, days));
+  const end = rentalEndDate(start, days);
   const prods = await db.select({ id: schema.products.id }).from(schema.products);
   return Object.fromEntries(await Promise.all(prods.map(async (p) => [p.id, await availableQty(db, p.id, start, end)] as const)));
 }
@@ -94,9 +101,10 @@ export const updateOrderAction = safeAction(async (fd) => {
   const rentalStart = String(fd.get("rentalStart"));
   await updateOrderDetails(String(fd.get("orderId")), {
     rentalStart,
-    rentalEnd: addDays(rentalStart, Math.max(1, toInt(fd.get("days"), 1))),
+    rentalEnd: rentalEndDate(rentalStart, toInt(fd.get("days"), 1)),
     discount: toInt(fd.get("discount")),
     notes: str(fd.get("notes")),
+    pickupTime: str(fd.get("pickupTime")),
   });
   revalidateAll();
   return { ok: "Pesanan diperbarui." };
@@ -119,5 +127,5 @@ export const addPaymentAction = safeAction(async (fd) => {
   );
   revalidateAll();
   if (method === "qris" && p.status === "pending") redirect(`/pembayaran/${p.id}/qris`);
-  return { ok: p.status === "lunas" ? "Pembayaran dicatat lunas." : "Pembayaran dicatat, menunggu konfirmasi." };
+  return { ok: p.status === "lunas" ? "Pembayaran dicatat." : "Pembayaran dicatat, bukti perlu dicek." };
 });

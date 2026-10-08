@@ -46,7 +46,7 @@ const ALLOWED: Record<string, string> = {
 const MAX_BYTES = 8 * 1024 * 1024;
 
 /** Simpan file unggahan; mengembalikan URL yang bisa dipakai di <img>/<a>. */
-export async function saveUpload(file: FormDataEntryValue | null, folder: "produk" | "bukti" | "toko") {
+export async function saveUpload(file: FormDataEntryValue | null, folder: "produk" | "bukti" | "toko" | "fitting" | "tabungan") {
   if (!file || typeof file === "string" || file.size === 0) return null;
   const ext = ALLOWED[file.type];
   if (!ext) throw new Error("Format file harus JPG, PNG, WEBP, GIF, atau PDF.");

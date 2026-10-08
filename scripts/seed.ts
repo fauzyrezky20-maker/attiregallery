@@ -31,14 +31,14 @@ async function main() {
     console.log("Database sudah berisi data. Jalankan dengan --reset untuk mengisi ulang.");
     return;
   }
-  const tables = [s.attendances, s.termsConsents, s.depositTransactions, s.customerDeposits, s.fittingSchedules, s.measurements, s.payments,
+  const tables = [s.storeSavings, s.attendances, s.termsConsents, s.depositTransactions, s.customerDeposits, s.fittingSchedules, s.measurements, s.payments,
     s.orderItems, s.orders, s.productPhotos, s.products, s.expenses, s.employees, s.customers, s.rolePermissions, s.sessions, s.accounts,
     s.verifications, s.users, s.storeSettings];
   for (const t of tables) await db.delete(t).run();
 
   await db.insert(s.storeSettings).values({
     storeName: "AttireGallery", address: "Jl. Melati No. 12, Yogyakarta", phone: "0812-3456-7890",
-    defaultRentDays: 3, finePerDay: 50000, termsText: DEFAULT_TERMS, termsVersion: "1.0",
+    defaultRentDays: 3, termsText: DEFAULT_TERMS, termsVersion: "1.0",
     transferInfo: "BCA 1234567890\na.n. AttireGallery",
     // QRIS contoh (bukan rekening asli) — ganti dengan QRIS toko di Pengaturan.
     qrisPayload: "00020101021126570011ID.DANA.WWW011893600915302259148102090225914810303UMI51440014ID.CO.QRIS.WWW0215ID10200176114730303UMI5204594553033605802ID5913AttireGallery6010Yogyakarta61055511163046A20",

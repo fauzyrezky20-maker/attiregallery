@@ -9,7 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { requireUser } from "@/lib/session";
-import { fmtDate, fmtDateTime, rupiah } from "@/lib/utils";
+import { addDays, fmtDate, fmtDateTime, rupiah, todayStr } from "@/lib/utils";
+import { settleDeadline } from "@/lib/pricing";
+import { getSettings } from "@/lib/settings";
+import { waLink } from "@/lib/catalog";
 import { confirmPaymentAction, rejectPaymentAction, uploadProofAction } from "./actions";
 
 const { payments, orders, customers } = schema;
@@ -39,21 +42,30 @@ export default async function PembayaranPage() {
       .limit(100),
   ]);
   const paid = sql<number>`coalesce((select sum(p.amount) from payments p where p.order_id = ${orders.id} and p.status = 'lunas'), 0)`;
-  const unpaid = await db
-    .select({ id: orders.id, customer: customers.name, total: orders.totalAmount, paid: paid, start: orders.rentalStart, status: orders.status })
-    .from(orders)
-    .innerJoin(customers, eq(customers.id, orders.customerId))
-    .where(and(inArray(orders.status, ["baru", "disewa", "selesai"]), gt(sql`${orders.totalAmount} - ${paid}`, 0)))
-    .orderBy(orders.rentalStart);
+  const settings = await getSettings();
+  const today = todayStr();
+  const unpaid = (
+    await db
+      .select({ id: orders.id, customer: customers.name, phone: customers.phone, total: orders.totalAmount, paid: paid, start: orders.rentalStart, status: orders.status })
+      .from(orders)
+      .innerJoin(customers, eq(customers.id, orders.customerId))
+      .where(and(inArray(orders.status, ["baru", "disewa", "selesai"]), gt(sql`${orders.totalAmount} - ${paid}`, 0)))
+      .orderBy(orders.rentalStart)
+  ).map((o) => ({ ...o, settleBy: settleDeadline(o.start, settings.settleDaysBefore) }));
+  // Pelunasan H-3: batas pelunasan sudah lewat / hari ini / dalam masa pengingat.
+  const remindUntil = addDays(today, settings.reminderDaysBefore);
+  const dueSoon = unpaid.filter((o) => o.paid > 0 && o.settleBy <= remindUntil);
+  const dpOnly = unpaid.filter((o) => o.paid > 0 && o.settleBy > remindUntil);
+  const noDp = unpaid.filter((o) => o.paid === 0);
 
   return (
     <>
-      <PageHeader title="Pembayaran" description="QRIS, transfer, dan status tagihan pelanggan." />
+      <PageHeader title="Pembayaran" description="DP (fix booking), pelunasan H-3, dan bukti pembayaran." />
       <div className="grid gap-6">
-        <Card>
+        {pending.length > 0 && <Card>
           <CardHeader>
-            <CardTitle>Menunggu konfirmasi ({pending.length})</CardTitle>
-            <CardDescription>Cocokkan dengan mutasi rekening / notifikasi QRIS, lalu tandai lunas.</CardDescription>
+            <CardTitle>Bukti QRIS / transfer perlu dicek ({pending.length})</CardTitle>
+            <CardDescription>Cocokkan dengan mutasi rekening / notifikasi QRIS. Jika dana sudah masuk, tandai diterima.</CardDescription>
           </CardHeader>
           <CardContent>
             {pending.length === 0 ? <Empty>Tidak ada pembayaran yang menunggu.</Empty> : (
@@ -72,7 +84,7 @@ export default async function PembayaranPage() {
                         <Input type="file" name="proof" accept="image/*,application/pdf" className="h-8 w-48 py-1 text-xs" required />
                         <SubmitButton size="sm" variant="outline">Unggah bukti</SubmitButton>
                       </ActionForm>
-                      <ActionForm action={confirmPaymentAction}><input type="hidden" name="paymentId" value={p.id} /><SubmitButton size="sm">Tandai lunas</SubmitButton></ActionForm>
+                      <ActionForm action={confirmPaymentAction}><input type="hidden" name="paymentId" value={p.id} /><SubmitButton size="sm">Dana diterima</SubmitButton></ActionForm>
                       <ActionForm action={rejectPaymentAction} confirm="Tandai pembayaran ini gagal?"><input type="hidden" name="paymentId" value={p.id} /><SubmitButton size="sm" variant="ghost">Gagal</SubmitButton></ActionForm>
                     </div>
                   </div>
@@ -80,30 +92,21 @@ export default async function PembayaranPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card>
-          <CardHeader><CardTitle>Tagihan belum lunas ({unpaid.length})</CardTitle></CardHeader>
-          <CardContent>
-            {unpaid.length === 0 ? <Empty>Semua tagihan sudah lunas. 🎉</Empty> : (
-              <Table>
-                <THead><TR><TH>Pelanggan</TH><TH>Tgl ambil</TH><TH>Status</TH><TH className="text-right">Total</TH><TH className="text-right">Dibayar</TH><TH className="text-right">Sisa</TH></TR></THead>
-                <TBody>
-                  {unpaid.map((o) => (
-                    <TR key={o.id}>
-                      <TD><Link href={`/pesanan/${o.id}`} className="font-medium hover:underline">{o.customer}</Link></TD>
-                      <TD>{fmtDate(o.start)}</TD>
-                      <TD><StatusBadge status={o.status} /></TD>
-                      <TD className="text-right">{rupiah(o.total)}</TD>
-                      <TD className="text-right">{rupiah(o.paid)}</TD>
-                      <TD className="text-right font-medium text-destructive">{rupiah(o.total - o.paid)}</TD>
-                    </TR>
-                  ))}
-                </TBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <BillCard
+          title={`Pelunasan H-${settings.settleDaysBefore} (${dueSoon.length})`}
+          description={`Sudah DP, batas pelunasan sudah dekat atau terlewat. Pelunasan paling lambat H-${settings.settleDaysBefore} sebelum tanggal ambil.`}
+          rows={dueSoon} today={today} storeName={settings.storeName} empty="Tidak ada pelunasan yang jatuh tempo."
+        />
+        <BillCard
+          title={`DP · fix booking (${dpOnly.length})`}
+          description="Pesanan yang sudah membayar DP dan menunggu pelunasan."
+          rows={dpOnly} today={today} storeName={settings.storeName} empty="Belum ada pesanan dengan DP."
+        />
+        {noDp.length > 0 && (
+          <BillCard title={`Belum DP (${noDp.length})`} description="Pesanan lama tanpa pembayaran; booking belum fix." rows={noDp} today={today} storeName={settings.storeName} empty="" />
+        )}
 
         <Card>
           <CardHeader><CardTitle>Riwayat & bukti pembayaran</CardTitle></CardHeader>
@@ -129,5 +132,38 @@ export default async function PembayaranPage() {
         </Card>
       </div>
     </>
+  );
+}
+
+type Bill = { id: string; customer: string; phone: string | null; total: number; paid: number; start: string; status: string; settleBy: string };
+
+function BillCard({ title, description, rows, today, storeName, empty }: { title: string; description: string; rows: Bill[]; today: string; storeName: string; empty: string }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle>{title}</CardTitle><CardDescription>{description}</CardDescription></CardHeader>
+      <CardContent>
+        {rows.length === 0 ? <Empty>{empty}</Empty> : (
+          <Table>
+            <THead><TR><TH>Pelanggan</TH><TH>Tgl ambil</TH><TH>Batas lunas</TH><TH className="text-right">Total</TH><TH className="text-right">DP / dibayar</TH><TH className="text-right">Sisa</TH><TH></TH></TR></THead>
+            <TBody>
+              {rows.map((o) => {
+                const wa = waLink(o.phone, `Halo Kak ${o.customer}, pengingat dari ${storeName}: sisa pelunasan sewa ${rupiah(o.total - o.paid)} paling lambat ${fmtDate(o.settleBy)}. Terima kasih 🙏`);
+                return (
+                  <TR key={o.id}>
+                    <TD><Link href={`/pesanan/${o.id}`} className="font-medium hover:underline">{o.customer}</Link></TD>
+                    <TD className="whitespace-nowrap">{fmtDate(o.start)}</TD>
+                    <TD className={`whitespace-nowrap ${o.settleBy < today ? "font-medium text-destructive" : ""}`}>{o.settleBy < today ? `Lewat · ${fmtDate(o.settleBy)}` : o.settleBy === today ? "Hari ini" : fmtDate(o.settleBy)}</TD>
+                    <TD className="text-right">{rupiah(o.total)}</TD>
+                    <TD className="text-right">{rupiah(o.paid)}</TD>
+                    <TD className="text-right font-medium text-destructive">{rupiah(o.total - o.paid)}</TD>
+                    <TD className="text-right">{wa && <a href={wa} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline">Ingatkan WA</a>}</TD>
+                  </TR>
+                );
+              })}
+            </TBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }

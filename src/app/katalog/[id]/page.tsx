@@ -9,9 +9,11 @@ import { Field, Input } from "@/components/ui/input";
 import { availableQty } from "@/lib/orders";
 import { getSettings } from "@/lib/settings";
 import { waLink } from "@/lib/catalog";
-import { addDays, fmtDate, rupiah, todayStr } from "@/lib/utils";
-import { rentalDays } from "@/lib/pricing";
+import { fmtDate, rupiah, todayStr } from "@/lib/utils";
+import { rentalDays, rentalEndDate, rentalPeriods } from "@/lib/pricing";
 import { AvailabilityBadge } from "../availability-badge";
+import { AddToCart } from "../cart";
+import { GuideAndTerms, RentalInfo } from "../info";
 
 const s = schema;
 const isDate = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
@@ -31,7 +33,7 @@ export default async function KatalogDetail({ params, searchParams }: {
 
   const today = todayStr();
   const start = isDate(mulai) ? mulai! : today;
-  const end = isDate(selesai) ? selesai! : addDays(start, settings.defaultRentDays);
+  const end = isDate(selesai) ? selesai! : rentalEndDate(start, settings.defaultRentDays);
   const checked = isDate(mulai) && isDate(selesai);
   let check: { ok: boolean; message: string } | null = null;
   if (checked) {
@@ -46,8 +48,9 @@ export default async function KatalogDetail({ params, searchParams }: {
   }
 
   const days = rentalDays(start, end);
+  const periods = rentalPeriods(days, settings.defaultRentDays);
   const text = checked && check?.ok
-    ? `Halo ${settings.storeName}, saya ingin menyewa "${product.name}" untuk tanggal ${fmtDate(start)} sampai ${fmtDate(end)} (${days} hari). Apakah bisa?`
+    ? `Halo ${settings.storeName}, saya ingin menyewa "${product.name}" untuk tanggal ${fmtDate(start)} sampai ${fmtDate(end)} (${days} hari), perkiraan ${rupiah(product.pricePerDay * periods)}. Apakah bisa?`
     : `Halo ${settings.storeName}, saya tertarik dengan kebaya "${product.name}". Apakah masih tersedia?`;
   const wa = waLink(settings.phone, text);
 
@@ -73,7 +76,7 @@ export default async function KatalogDetail({ params, searchParams }: {
           <div className="grid gap-2">
             <h1 className="text-2xl font-semibold leading-tight">{product.name}</h1>
             {product.category && <p className="text-sm text-muted-foreground">{product.category}</p>}
-            <p className="text-xl font-semibold">{rupiah(product.pricePerDay)}<span className="text-sm font-normal text-muted-foreground">/hari</span></p>
+            <p className="text-xl font-semibold">{rupiah(product.pricePerDay)}<span className="text-sm font-normal text-muted-foreground">/{settings.defaultRentDays} hari</span></p>
             <div><AvailabilityBadge status={product.status} available={product.stockAvailable} /></div>
           </div>
           <Card>
@@ -90,18 +93,21 @@ export default async function KatalogDetail({ params, searchParams }: {
                 <p className={`mt-3 rounded-md p-3 text-sm ${check.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{check.message}</p>
               )}
               {checked && check?.ok && (
-                <p className="mt-2 text-sm text-muted-foreground">Perkiraan biaya sewa: <span className="font-semibold text-foreground">{rupiah(product.pricePerDay * days)}</span></p>
+                <p className="mt-2 text-sm text-muted-foreground">Perkiraan biaya sewa: <span className="font-semibold text-foreground">{rupiah(product.pricePerDay * periods)}</span></p>
               )}
             </CardContent>
           </Card>
+          <AddToCart id={product.id} />
           {wa ? (
             <a href={wa} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center justify-center rounded-md bg-emerald-600 px-4 font-medium text-white hover:bg-emerald-700">
-              Pesan via WhatsApp
+              Pesan item ini via WhatsApp
             </a>
           ) : (
             <p className="text-sm text-muted-foreground">Hubungi toko untuk memesan{settings.address ? ` di ${settings.address}` : ""}.</p>
           )}
-          <p className="text-xs text-muted-foreground">Pesanan baru dianggap pasti setelah dikonfirmasi oleh toko.</p>
+          <p className="text-xs text-muted-foreground">Mau sewa lebih dari 1 item? Tekan &quot;Tambah ke daftar pesanan&quot; di tiap item, lalu pesan sekaligus.</p>
+          <RentalInfo s={settings} />
+          <GuideAndTerms s={settings} />
         </div>
       </div>
     </>

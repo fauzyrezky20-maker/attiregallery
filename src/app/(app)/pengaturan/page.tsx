@@ -7,7 +7,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { MENUS } from "@/lib/permissions";
-import { savePaymentAction, savePermissionsAction, saveProfileAction, saveRulesAction, saveNotifAction, saveTermsAction } from "./actions";
+import { saveGuideAction, saveSavingsAction, savePaymentAction, savePermissionsAction, saveProfileAction, saveRulesAction, saveNotifAction, saveTermsAction } from "./actions";
 
 const Check = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name={name} defaultChecked={checked} className="size-4" /> {label}</label>
@@ -49,6 +49,7 @@ export default async function PengaturanPage() {
               <Field label="Nama toko"><Input name="storeName" defaultValue={s.storeName} required /></Field>
               <Field label="Alamat"><Textarea name="address" rows={2} defaultValue={s.address ?? ""} /></Field>
               <Field label="No. telepon / WhatsApp"><Input name="phone" defaultValue={s.phone ?? ""} /></Field>
+              <Field label="Instagram" hint="Tanpa @, mis. attiregalleryyy"><Input name="instagram" defaultValue={s.instagram ?? ""} /></Field>
               <SubmitButton>Simpan profil</SubmitButton>
             </ActionForm>
           </CardContent>
@@ -58,8 +59,14 @@ export default async function PengaturanPage() {
           <CardHeader><CardTitle>Aturan sewa & denda</CardTitle></CardHeader>
           <CardContent>
             <ActionForm action={saveRulesAction}>
-              <Field label="Lama sewa standar (hari)" hint="Terisi otomatis di Kasir"><Input name="defaultRentDays" type="number" min={1} defaultValue={s.defaultRentDays} /></Field>
-              <Field label="Denda keterlambatan per hari (Rp)" hint="Dihitung per pesanan untuk setiap hari lewat tanggal kembali"><Input name="finePerDay" type="number" min={0} step={1000} defaultValue={s.finePerDay} /></Field>
+              <Field label="Harga sewa berlaku untuk (hari)" hint="Harga produk adalah harga per paket ini. Sewa lebih lama dihitung kelipatannya."><Input name="defaultRentDays" type="number" min={1} defaultValue={s.defaultRentDays} /></Field>
+              <p className="rounded-md bg-muted p-3 text-sm">Denda keterlambatan: <b>per hari sesuai harga sewa baju</b> yang dipinjam (dihitung otomatis saat pengembalian).</p>
+              <Field label="DP minimal untuk fix booking (Rp)"><Input name="dpAmount" type="number" min={0} step={1000} defaultValue={s.dpAmount} /></Field>
+              <Field label="Pelunasan paling lambat H-berapa"><Input name="settleDaysBefore" type="number" min={0} max={30} defaultValue={s.settleDaysBefore} /></Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Jam ambil mulai"><Input name="pickupFrom" type="time" defaultValue={s.pickupFrom} /></Field>
+                <Field label="Jam ambil sampai"><Input name="pickupUntil" type="time" defaultValue={s.pickupUntil} /></Field>
+              </div>
               <Field label="Batas stok menipis (unit)" hint="Kebaya dengan unit tersedia ≤ angka ini tampil di dasbor"><Input name="lowStockThreshold" type="number" min={0} defaultValue={s.lowStockThreshold} /></Field>
               <SubmitButton>Simpan aturan</SubmitButton>
             </ActionForm>
@@ -84,6 +91,20 @@ export default async function PengaturanPage() {
 
         <Card>
           <CardHeader>
+            <CardTitle>Tabungan toko</CardTitle>
+            <CardDescription>Dipakai di menu Tabungan Toko untuk setor bulanan lewat m-banking.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActionForm action={saveSavingsAction}>
+              <Field label="Rekening tabungan"><Textarea name="savingsAccount" rows={2} defaultValue={s.savingsAccount ?? ""} placeholder={"BRI 1234 5678 9012\na.n. AttireGallery"} /></Field>
+              <Field label="Link aplikasi m-banking" hint="Opsional. Mis. https://bri.co.id/brimo atau link toko aplikasi bank Anda."><Input name="mbankingUrl" type="url" defaultValue={s.mbankingUrl ?? ""} placeholder="https://" /></Field>
+              <SubmitButton>Simpan tabungan</SubmitButton>
+            </ActionForm>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Notifikasi</CardTitle>
             <CardDescription>Pengingat tampil di Dasbor saat aplikasi dibuka.</CardDescription>
           </CardHeader>
@@ -94,6 +115,19 @@ export default async function PengaturanPage() {
               <Check name="notifyPayment" label="Ingatkan tagihan yang belum lunas" checked={s.notifyPayment} />
               <Field label="Ingatkan berapa hari sebelumnya"><Input name="reminderDaysBefore" type="number" min={0} max={14} defaultValue={s.reminderDaysBefore} /></Field>
               <SubmitButton>Simpan notifikasi</SubmitButton>
+            </ActionForm>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Tata cara sewa</CardTitle>
+            <CardDescription>Ditampilkan di Kasir dan di katalog pelanggan.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ActionForm action={saveGuideAction}>
+              <Field label="Teks tata cara"><Textarea name="rentalGuide" rows={8} defaultValue={s.rentalGuide ?? ""} /></Field>
+              <SubmitButton>Simpan tata cara</SubmitButton>
             </ActionForm>
           </CardContent>
         </Card>

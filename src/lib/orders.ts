@@ -2,9 +2,9 @@ import "server-only";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import type { PaymentMethod } from "@/db/schema";
-import { calcFine, calcSubtotal, calcTotal, rentalDays } from "./pricing";
+import { calcFine, calcSubtotal, calcTotal, rentalDays, rentalPeriods } from "./pricing";
 import { getSettings } from "./settings";
-import { todayStr } from "./utils";
+import { rupiah, todayStr } from "./utils";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 type Q = Tx | typeof db;
@@ -114,6 +114,7 @@ export type NewOrderInput = {
   items: { productId: string; quantity: number }[];
   discount: number;
   notes: string | null;
+  pickupTime: string | null;
   agreeTerms: boolean;
   payment: (PaymentInput & { confirmed?: boolean }) | null;
 };
@@ -122,7 +123,10 @@ export async function createOrder(input: NewOrderInput) {
   const settings = await getSettings();
   if (!input.items.length) throw new BizError("Pilih minimal satu kebaya.");
   if (input.rentalEnd < input.rentalStart) throw new BizError("Tanggal kembali tidak boleh sebelum tanggal ambil.");
-  if (!input.agreeTerms) throw new BizError("Pelanggan harus menyetujui Syarat & Ketentuan sewa.");
+  if (!input.agreeTerms) throw new BizError("Pelanggan harus menyetujui tata cara sewa dan Syarat & Ketentuan.");
+  if (input.pickupTime && (input.pickupTime < settings.pickupFrom || input.pickupTime > settings.pickupUntil)) {
+    throw new BizError(`Jam ambil harus antara ${settings.pickupFrom} dan ${settings.pickupUntil}.`);
+  }
 
   return db.transaction(async (tx) => {
     const lines: { productId: string; quantity: number; price: number }[] = [];
@@ -133,9 +137,14 @@ export async function createOrder(input: NewOrderInput) {
       if (it.quantity > avail) throw new BizError(`Stok "${p.name}" untuk tanggal tersebut tinggal ${avail}.`);
       lines.push({ productId: p.id, quantity: it.quantity, price: p.pricePerDay });
     }
-    const days = rentalDays(input.rentalStart, input.rentalEnd);
-    const subtotal = calcSubtotal(lines, days);
+    const subtotal = calcSubtotal(lines, rentalPeriods(rentalDays(input.rentalStart, input.rentalEnd), settings.defaultRentDays));
     const discount = Math.min(Math.max(0, input.discount), subtotal);
+    const total = calcTotal(subtotal, discount, 0);
+    const minPay = Math.min(settings.dpAmount, total);
+    if (total > 0 && (!input.payment || input.payment.amount < minPay)) {
+      throw new BizError(`Booking baru fix setelah DP. Minimal pembayaran ${rupiah(minPay)}.`);
+    }
+    if (input.payment && input.payment.amount > total) throw new BizError("Nominal pembayaran melebihi total tagihan.");
     const order = await tx
       .insert(orders)
       .values({
@@ -145,8 +154,9 @@ export async function createOrder(input: NewOrderInput) {
         rentalEnd: input.rentalEnd,
         discount,
         fine: 0,
-        totalAmount: calcTotal(subtotal, discount, 0),
+        totalAmount: total,
         notes: input.notes,
+        pickupTime: input.pickupTime,
       })
       .returning()
       .get();
@@ -157,8 +167,8 @@ export async function createOrder(input: NewOrderInput) {
   });
 }
 
-export function orderSubtotal(items: { price: number; quantity: number }[], start: string, end: string) {
-  return calcSubtotal(items, rentalDays(start, end));
+export function orderSubtotal(items: { price: number; quantity: number }[], start: string, end: string, packageDays: number) {
+  return calcSubtotal(items, rentalPeriods(rentalDays(start, end), packageDays));
 }
 
 /** Kebaya diambil pelanggan → stok di toko berkurang. */
@@ -194,8 +204,8 @@ export async function markReturned(orderId: string, returnDate = todayStr()) {
         .run();
       await syncProductStatus(tx, p.id);
     }
-    const { fine, lateDays } = calcFine(o.rentalEnd, returnDate, settings.finePerDay);
-    const subtotal = orderSubtotal(items, o.rentalStart, o.rentalEnd);
+    const { fine, lateDays } = calcFine(o.rentalEnd, returnDate, items);
+    const subtotal = orderSubtotal(items, o.rentalStart, o.rentalEnd, settings.defaultRentDays);
     await tx.update(orders)
       .set({ status: "selesai", returnedAt: returnDate, fine, totalAmount: calcTotal(subtotal, o.discount, fine) })
       .where(eq(orders.id, orderId))
@@ -214,7 +224,8 @@ export async function cancelOrder(orderId: string) {
 }
 
 /** Ubah tanggal/diskon/catatan pesanan yang belum selesai; total dihitung ulang. */
-export async function updateOrderDetails(orderId: string, data: { rentalStart: string; rentalEnd: string; discount: number; notes: string | null }) {
+export async function updateOrderDetails(orderId: string, data: { rentalStart: string; rentalEnd: string; discount: number; notes: string | null; pickupTime: string | null }) {
+  const settings = await getSettings();
   return db.transaction(async (tx) => {
     const o = await tx.select().from(orders).where(eq(orders.id, orderId)).get();
     if (!o) throw new BizError("Pesanan tidak ditemukan.");
@@ -225,7 +236,7 @@ export async function updateOrderDetails(orderId: string, data: { rentalStart: s
       const avail = await availableQty(tx, it.productId, data.rentalStart, data.rentalEnd, orderId);
       if (it.quantity > avail) throw new BizError("Stok kebaya tidak cukup untuk tanggal baru tersebut.");
     }
-    const subtotal = orderSubtotal(items, data.rentalStart, data.rentalEnd);
+    const subtotal = orderSubtotal(items, data.rentalStart, data.rentalEnd, settings.defaultRentDays);
     const discount = Math.min(Math.max(0, data.discount), subtotal);
     await tx.update(orders)
       .set({ ...data, discount, totalAmount: calcTotal(subtotal, discount, o.fine) })

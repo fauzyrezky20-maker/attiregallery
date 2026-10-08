@@ -11,6 +11,9 @@ import { Empty } from "@/components/ui/table";
 import { requireUser } from "@/lib/session";
 import { rupiah } from "@/lib/utils";
 import { PRODUCT_STATUS } from "@/db/schema";
+import { ActionForm, SubmitButton } from "@/components/action-form";
+import { KOLEKSI_KEBAYA } from "@/lib/koleksi";
+import { importKoleksiAction } from "./actions";
 
 const { products: p, productPhotos: ph } = schema;
 
@@ -26,6 +29,8 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
     db.select().from(ph).where(eq(ph.isPrimary, true)),
     db.selectDistinct({ c: p.category }).from(p).orderBy(asc(p.category)),
   ]);
+  const allNames = new Set((await db.select({ n: p.name }).from(p)).map((x) => x.n.trim().toLowerCase()));
+  const missing = KOLEKSI_KEBAYA.filter((k) => !allNames.has(k.name.toLowerCase())).length;
   const photoOf = new Map(photos.map((x) => [x.productId, x.photoUrl]));
   const totals = rows.reduce((a, r) => ({ units: a.units + r.stockTotal, avail: a.avail + r.stockAvailable }), { units: 0, avail: 0 });
 
@@ -36,6 +41,18 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
         description={`${rows.length} model · ${totals.avail} dari ${totals.units} unit ada di toko`}
         actions={<Button asChild><Link href="/produk/baru"><Plus /> Tambah kebaya</Link></Button>}
       />
+      {missing > 0 && (
+        <Card className="mb-4 p-4">
+          <ActionForm action={importKoleksiAction} className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex-1 text-sm">
+              <p className="font-medium">Impor koleksi dari Katalog Kebaya</p>
+              <p className="text-muted-foreground">{missing} kebaya (Regular & Premium) beserta foto dan harga per 3 hari belum ada di daftar.</p>
+              <label className="mt-1 flex items-center gap-2"><input type="checkbox" name="lain" className="size-4" /> Sertakan dress, baju bodo, jas, paket & aksesoris (tanpa foto)</label>
+            </div>
+            <SubmitButton>Impor sekarang</SubmitButton>
+          </ActionForm>
+        </Card>
+      )}
       <form className="mb-4 flex flex-col gap-2 sm:flex-row">
         <Input name="q" defaultValue={q} placeholder="Cari kebaya…" className="sm:max-w-xs" />
         <Select name="kategori" defaultValue={kategori} className="sm:w-48">
@@ -62,7 +79,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
                 <div className="grid gap-1 p-3">
                   <p className="line-clamp-2 font-medium leading-tight">{r.name}</p>
                   <p className="text-xs text-muted-foreground">{r.category ?? "-"}</p>
-                  <p className="text-sm font-semibold">{rupiah(r.pricePerDay)}<span className="font-normal text-muted-foreground">/hari</span></p>
+                  <p className="text-sm font-semibold">{rupiah(r.pricePerDay)}<span className="font-normal text-muted-foreground">/3 hari</span></p>
                   <div className="flex items-center justify-between gap-1">
                     <StatusBadge status={r.status} />
                     <span className="text-xs text-muted-foreground">{r.stockAvailable}/{r.stockTotal} unit</span>

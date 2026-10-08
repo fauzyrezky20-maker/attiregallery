@@ -12,3 +12,5 @@ export function waLink(phone: string | null | undefined, text: string) {
   const n = waNumber(phone);
   return n ? `https://wa.me/${n}?text=${encodeURIComponent(text)}` : null;
 }
+
+export const EVENT_TYPES = ["Wisuda", "Pernikahan", "Lamaran / tunangan", "Foto prewedding", "Pesta / kondangan", "Acara kantor / sekolah", "Lainnya"];

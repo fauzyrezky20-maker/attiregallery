@@ -59,7 +59,7 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
                         {r?.checkIn && !r.checkOut && <ActionForm action={checkOutAction}><input type="hidden" name="employeeId" value={emp.id} /><SubmitButton size="sm" variant="secondary">Check-out</SubmitButton></ActionForm>}
                         <ActionForm action={setAttendanceStatusAction} className="flex flex-wrap gap-2">
                           <input type="hidden" name="employeeId" value={emp.id} />
-                          <Select name="status" defaultValue={r?.status ?? "izin"} className="h-8 w-28 py-0 text-sm">{ATTENDANCE_STATUS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</Select>
+                          <Select name="status" defaultValue={r?.status ?? "izin"} className="h-8 w-40 py-0 text-sm">{ATTENDANCE_STATUS.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}</Select>
                           <Input name="note" placeholder="Keterangan" defaultValue={r?.note ?? ""} className="h-8 w-36 text-sm" />
                           <SubmitButton size="sm" variant="outline">Simpan</SubmitButton>
                         </ActionForm>

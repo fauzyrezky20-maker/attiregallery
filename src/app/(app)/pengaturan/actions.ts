@@ -25,17 +25,38 @@ export const saveProfileAction = safeAction(async (fd) => {
   const logoUrl = await saveUpload(fd.get("logo"), "toko");
   const storeName = str(fd.get("storeName"));
   if (!storeName) throw new BizError("Nama toko wajib diisi.");
-  await save({ storeName, address: str(fd.get("address")), phone: str(fd.get("phone")), ...(logoUrl ? { logoUrl } : {}) });
+  const instagram = str(fd.get("instagram"))?.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "") ?? null;
+  await save({ storeName, address: str(fd.get("address")), phone: str(fd.get("phone")), instagram, ...(logoUrl ? { logoUrl } : {}) });
   return { ok: "Profil toko disimpan." };
 });
 
 export const saveRulesAction = safeAction(async (fd) => {
   await save({
     defaultRentDays: Math.max(1, toInt(fd.get("defaultRentDays"), 3)),
-    finePerDay: Math.max(0, toInt(fd.get("finePerDay"))),
+    dpAmount: Math.max(0, toInt(fd.get("dpAmount"), 200000)),
+    settleDaysBefore: Math.min(30, Math.max(0, toInt(fd.get("settleDaysBefore"), 3))),
+    pickupFrom: time(fd.get("pickupFrom"), "16:00"),
+    pickupUntil: time(fd.get("pickupUntil"), "20:00"),
     lowStockThreshold: Math.max(0, toInt(fd.get("lowStockThreshold"), 1)),
   });
   return { ok: "Aturan sewa & denda disimpan." };
+});
+
+const time = (v: FormDataEntryValue | null, fallback: string) => {
+  const s = typeof v === "string" ? v.trim().slice(0, 5) : "";
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? s : fallback;
+};
+
+export const saveGuideAction = safeAction(async (fd) => {
+  await save({ rentalGuide: str(fd.get("rentalGuide")) });
+  return { ok: "Tata cara sewa disimpan." };
+});
+
+export const saveSavingsAction = safeAction(async (fd) => {
+  const mbankingUrl = str(fd.get("mbankingUrl"));
+  if (mbankingUrl && !/^https?:\/\//.test(mbankingUrl)) throw new BizError("Link m-banking harus diawali https://");
+  await save({ savingsAccount: str(fd.get("savingsAccount")), mbankingUrl });
+  return { ok: "Info tabungan disimpan." };
 });
 
 export const savePaymentAction = safeAction(async (fd) => {

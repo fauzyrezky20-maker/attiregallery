@@ -5,7 +5,9 @@ const MAP: Record<string, { label: string; variant: "info" | "warning" | "succes
   disewa: { label: "Sedang disewa", variant: "warning" },
   selesai: { label: "Selesai", variant: "success" },
   dibatalkan: { label: "Dibatalkan", variant: "secondary" },
-  pending: { label: "Menunggu", variant: "warning" },
+  pending: { label: "Perlu dicek", variant: "warning" },
+  dp: { label: "DP", variant: "info" },
+  belum_dp: { label: "Belum DP", variant: "danger" },
   lunas: { label: "Lunas", variant: "success" },
   gagal: { label: "Gagal", variant: "danger" },
   belum_lunas: { label: "Belum lunas", variant: "danger" },
@@ -17,6 +19,7 @@ const MAP: Record<string, { label: string; variant: "info" | "warning" | "succes
   izin: { label: "Izin", variant: "info" },
   sakit: { label: "Sakit", variant: "warning" },
   cuti: { label: "Cuti", variant: "secondary" },
+  "tanpa keterangan": { label: "Tanpa keterangan", variant: "danger" },
   aktif: { label: "Aktif", variant: "success" },
   "tidak aktif": { label: "Tidak aktif", variant: "secondary" },
 };

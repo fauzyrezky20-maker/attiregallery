@@ -99,3 +99,26 @@ export const deleteProductAction = safeAction(async (fd) => {
   redirect("/produk");
 });
 
+
+export const importKoleksiAction = safeAction(async (fd) => {
+  await requireUser("produk");
+  const { KOLEKSI_KEBAYA, KOLEKSI_LAIN } = await import("@/lib/koleksi");
+  const list = [...KOLEKSI_KEBAYA, ...(fd.get("lain") === "on" ? KOLEKSI_LAIN.map((x) => ({ ...x, photo: null })) : [])];
+  const existing = new Set((await db.select({ name: products.name }).from(products)).map((r) => r.name.trim().toLowerCase()));
+  let added = 0;
+  for (const k of list) {
+    if (existing.has(k.name.toLowerCase())) continue;
+    const [row] = await db
+      .insert(products)
+      .values({ name: k.name, category: k.category, pricePerDay: k.price, stockTotal: 1, stockAvailable: 1 })
+      .returning({ id: products.id });
+    if (k.photo) await db.insert(productPhotos).values({ productId: row.id, photoUrl: k.photo, isPrimary: true });
+    added++;
+  }
+  const s = await db.query.storeSettings.findFirst();
+  if (s && (!s.phone || !s.instagram)) {
+    await db.update(schema.storeSettings).set({ phone: s.phone || "082345652490", instagram: s.instagram || "attiregalleryyy" }).where(eq(schema.storeSettings.id, s.id));
+  }
+  revalidatePath("/", "layout");
+  return { ok: added ? `${added} produk dari katalog ditambahkan.` : "Semua produk katalog sudah ada." };
+});

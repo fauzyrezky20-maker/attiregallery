@@ -12,7 +12,8 @@ import { Field, Input, Select, Textarea } from "@/components/ui/input";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { fmtDate, fmtDateTime, rupiah } from "@/lib/utils";
-import { addMeasurementAction, depositAction, saveCustomerAction } from "../actions";
+import { addMeasurementAction, saveCustomerAction } from "../actions";
+import { EVENT_TYPES } from "@/lib/catalog";
 
 const s = schema;
 const SIZE_FIELDS = [
@@ -27,12 +28,10 @@ export default async function PelangganDetail({ params, searchParams }: { params
   const c = await db.query.customers.findFirst({ where: eq(s.customers.id, id) });
   if (!c) notFound();
   const allowed = await getAllowedMenus(user.role);
-  const [measures, fittings, orders, deposit, mutations] = await Promise.all([
+  const [measures, fittings, orders] = await Promise.all([
     db.select().from(s.measurements).where(eq(s.measurements.customerId, id)).orderBy(desc(s.measurements.measuredAt)),
     db.select().from(s.fittingSchedules).where(eq(s.fittingSchedules.customerId, id)).orderBy(desc(s.fittingSchedules.scheduledAt)),
     db.select().from(s.orders).where(eq(s.orders.customerId, id)).orderBy(desc(s.orders.createdAt)),
-    db.query.customerDeposits.findFirst({ where: eq(s.customerDeposits.customerId, id) }),
-    db.select().from(s.depositTransactions).where(eq(s.depositTransactions.customerId, id)).orderBy(desc(s.depositTransactions.createdAt)).limit(50),
   ]);
   const last = measures[0];
 
@@ -40,7 +39,7 @@ export default async function PelangganDetail({ params, searchParams }: { params
     <>
       <PageHeader
         title={c.name}
-        description={[c.phone, c.address].filter(Boolean).join(" · ") || "Pelanggan"}
+        description={[c.phone, c.eventType, c.campus, c.address].filter(Boolean).join(" · ") || "Pelanggan"}
         back="/pelanggan"
         actions={allowed.includes("kasir") && <Button asChild><Link href={`/kasir?pelanggan=${c.id}`}><ShoppingCart /> Transaksi baru</Link></Button>}
       />
@@ -125,41 +124,16 @@ export default async function PelangganDetail({ params, searchParams }: { params
               <ActionForm action={saveCustomerAction}>
                 <input type="hidden" name="id" value={c.id} />
                 <Field label="Nama"><Input name="name" defaultValue={c.name} required /></Field>
-                <Field label="No. telepon"><Input name="phone" defaultValue={c.phone ?? ""} /></Field>
+                <Field label="No. WhatsApp"><Input name="phone" defaultValue={c.phone ?? ""} /></Field>
+                <Field label="Jenis acara"><Input name="eventType" list="event-types" defaultValue={c.eventType ?? ""} /></Field>
+                <Field label="Asal kampus"><Input name="campus" defaultValue={c.campus ?? ""} /></Field>
+                <datalist id="event-types">{EVENT_TYPES.map((e) => <option key={e} value={e} />)}</datalist>
                 <Field label="Alamat"><Textarea name="address" rows={2} defaultValue={c.address ?? ""} /></Field>
                 <SubmitButton variant="secondary">Simpan</SubmitButton>
               </ActionForm>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle>Tabungan</CardTitle></CardHeader>
-            <CardContent className="grid gap-4">
-              <p className="text-3xl font-semibold">{rupiah(deposit?.balance ?? 0)}</p>
-              {allowed.includes("tabungan") && (
-                <ActionForm action={depositAction} resetOnSuccess>
-                  <input type="hidden" name="customerId" value={c.id} />
-                  <div className="grid grid-cols-2 gap-2">
-                    <Select name="type" defaultValue="setor"><option value="setor">Setor</option><option value="pakai">Pakai / tarik</option></Select>
-                    <Input name="amount" type="number" min={1} step={1000} placeholder="Nominal" required />
-                  </div>
-                  <Input name="note" placeholder="Keterangan (opsional)" />
-                  <SubmitButton variant="secondary">Simpan mutasi</SubmitButton>
-                </ActionForm>
-              )}
-              <p className="text-xs text-muted-foreground">Saldo juga bisa dipakai langsung saat bayar di Kasir atau di detail pesanan.</p>
-              {mutations.length > 0 && (
-                <ul className="divide-y text-sm">
-                  {mutations.map((m) => (
-                    <li key={m.id} className="flex justify-between gap-2 py-2">
-                      <span className="min-w-0"><span className="block truncate">{m.note ?? (m.type === "setor" ? "Setoran" : "Pemakaian")}</span><span className="text-xs text-muted-foreground">{fmtDateTime(m.createdAt)}</span></span>
-                      <span className={m.type === "setor" ? "text-emerald-700 dark:text-emerald-400" : "text-destructive"}>{m.type === "setor" ? "+" : "−"}{rupiah(m.amount)}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
         </div>
       </div>
     </>

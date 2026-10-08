@@ -46,7 +46,8 @@ export default async function NotaPage({ params, searchParams }: { params: Promi
           <span>Tanggal</span><span>{fmtDateTime(order.createdAt)}</span>
           <span>Pelanggan</span><span>{customer.name}</span>
           {customer.phone && (<><span>Telp.</span><span>{customer.phone}</span></>)}
-          <span>Ambil</span><span>{fmtDate(order.rentalStart)}</span>
+          {(customer.eventType || customer.campus) && (<><span>Acara</span><span>{[customer.eventType, customer.campus].filter(Boolean).join(" · ")}</span></>)}
+          <span>Ambil</span><span>{fmtDate(order.rentalStart)}{order.pickupTime ? `, ${order.pickupTime.replace(":", ".")}` : ""}</span>
           <span>Kembali</span><span className="font-bold">{fmtDate(order.rentalEnd)}</span>
           <span>Status</span><span>{STATUS[order.status]}</span>
           {d.staffName && (<><span>Kasir</span><span>{d.staffName}</span></>)}
@@ -55,7 +56,7 @@ export default async function NotaPage({ params, searchParams }: { params: Promi
         {d.items.map((i) => (
           <div key={i.id} className="mb-1">
             <p>{i.name}</p>
-            <div className="flex justify-between pl-3"><span>{i.quantity} × {rupiah(i.price)} × {d.days} hr</span><span>{rupiah(i.price * i.quantity * d.days)}</span></div>
+            <div className="flex justify-between pl-3"><span>{i.quantity} × {rupiah(i.price)}{d.periods > 1 ? ` × ${d.periods} paket` : ""}</span><span>{rupiah(i.price * i.quantity * d.periods)}</span></div>
           </div>
         ))}
         <hr className="my-3 border-dashed border-black" />
@@ -64,11 +65,12 @@ export default async function NotaPage({ params, searchParams }: { params: Promi
         {order.fine > 0 && <div className="flex justify-between"><span>Denda terlambat</span><span>{rupiah(order.fine)}</span></div>}
         <div className="flex justify-between text-base font-bold"><span>TOTAL</span><span>{rupiah(order.totalAmount)}</span></div>
         {lunas.map((p) => (
-          <div key={p.id} className="flex justify-between"><span>Bayar ({METHOD_LABEL[p.method]})</span><span>{rupiah(p.amount)}</span></div>
+          <div key={p.id} className="flex justify-between"><span>{p.note ?? "Bayar"} ({METHOD_LABEL[p.method]})</span><span>{rupiah(p.amount)}</span></div>
         ))}
-        <div className="flex justify-between font-bold"><span>{d.outstanding > 0 ? "SISA TAGIHAN" : "LUNAS"}</span><span>{d.outstanding > 0 ? rupiah(d.outstanding) : ""}</span></div>
+        <div className="flex justify-between font-bold"><span>{d.outstanding > 0 ? "SISA PELUNASAN" : "LUNAS"}</span><span>{d.outstanding > 0 ? rupiah(d.outstanding) : ""}</span></div>
+        {d.outstanding > 0 && <p>Lunasi paling lambat {fmtDate(d.settleBy)} (H-{s.settleDaysBefore}).</p>}
         <hr className="my-3 border-dashed border-black" />
-        <p className="text-[11px]">Denda keterlambatan {rupiah(s.finePerDay)}/hari. Pelanggan telah menyetujui S&K sewa versi {d.consent?.termsVersion ?? s.termsVersion}.</p>
+        <p className="text-[11px]">Ambil pukul {s.pickupFrom.replace(":", ".")}–{s.pickupUntil.replace(":", ".")}, wajib konfirmasi via WA. Jaminan KTP. Keterlambatan per hari didenda sesuai harga sewa. Pelanggan telah menyetujui S&K sewa versi {d.consent?.termsVersion ?? s.termsVersion}.</p>
         <p className="mt-3 text-center">Terima kasih 🌸</p>
       </div>
     </div>

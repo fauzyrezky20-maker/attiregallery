@@ -12,11 +12,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ path: st
   // File di Blob store privat: /uploads/blob/<folder>/<nama>
   const fromBlob = parts[0] === "blob";
   if (fromBlob) parts = parts.slice(1);
-  // Bukti pembayaran hanya untuk pengguna yang sudah login; foto produk & logo bersifat publik.
-  if (parts[0] === "bukti" && !(await auth.api.getSession({ headers: req.headers }))) {
+  // Bukti pembayaran, foto fitting & bukti setoran hanya untuk pengguna yang sudah login; foto produk & logo bersifat publik.
+  const isPrivate = parts[0] === "bukti" || parts[0] === "fitting" || parts[0] === "tabungan";
+  if (isPrivate && !(await auth.api.getSession({ headers: req.headers }))) {
     return new Response("Unauthorized", { status: 401 });
   }
-  const cacheControl = parts[0] === "bukti" ? "private, max-age=3600" : "public, max-age=31536000, immutable";
+  const cacheControl = isPrivate ? "private, max-age=3600" : "public, max-age=31536000, immutable";
   if (fromBlob) {
     const res = await readPrivateBlob(parts.join("/")).catch(() => null);
     if (!res) return new Response("Not found", { status: 404 });

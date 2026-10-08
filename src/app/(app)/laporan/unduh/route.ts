@@ -23,14 +23,15 @@ export async function GET(req: Request) {
   const ts = (d: Date | null) => (d ? new Date(d.getTime() + 7 * 3600_000).toISOString().replace("T", " ").slice(0, 16) : "");
   const rows: (string | number | null)[][] = [
     [`Laporan Keuangan ${s.storeName}`], [`Periode`, from, to], [],
-    ["RINGKASAN"], ["Pemasukan", r.income], ["Pengeluaran", r.expense], ["Laba/Rugi", r.profit], [],
-    ["PEMASUKAN PER METODE"], ["Metode", "Jumlah transaksi", "Total"],
+    ["PEMASUKAN"], ["Total pemasukan", r.income], [],
+    ["Per metode"], ["Metode", "Jumlah transaksi", "Total"],
     ...r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, m.count, m.total]), [],
-    ["LABA RUGI PER HARI"], ["Tanggal", "Pemasukan", "Pengeluaran", "Laba/Rugi"],
-    ...r.daily.map((d) => [d.day, d.income, d.expense, d.profit]), [],
-    ["RIWAYAT PENJUALAN"], ["Waktu", "No. pesanan", "Pelanggan", "Metode", "Nominal"],
+    ["Daftar pemasukan"], ["Waktu", "No. pesanan", "Pelanggan", "Metode", "Nominal"],
     ...r.sales.map((x) => [ts(x.paidAt), x.orderId.slice(0, 8), x.customer, METHOD[x.method] ?? x.method, x.amount]), [],
-    ["PENGELUARAN"], ["Tanggal", "Jenis", "Keterangan", "Nominal"],
+    ["PENGELUARAN"], ["Total pengeluaran", r.expense], [],
+    ["Per jenis"], ["Jenis", "Total"],
+    ...r.expenseByCategory.map(([c, t]) => [c, t]), [],
+    ["Daftar pengeluaran"], ["Tanggal", "Jenis", "Keterangan", "Nominal"],
     ...r.expenseRows.map((e) => [e.date, e.category, e.note, e.amount]),
   ];
   return new Response("﻿" + csv(rows), {

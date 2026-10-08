@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { MapPin, Phone } from "lucide-react";
+import { AtSign, MapPin, Phone } from "lucide-react";
+import { CartBar } from "./cart";
 import { getSettings } from "@/lib/settings";
 import { waLink } from "@/lib/catalog";
 
@@ -38,12 +39,18 @@ export default async function KatalogLayout({ children }: { children: React.Reac
           )}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">{children}</main>
-      <footer className="border-t bg-card">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 pb-24">{children}</main>
+      <CartBar />
+      <footer className="border-t bg-card pb-16">
         <div className="mx-auto grid max-w-6xl gap-1 px-4 py-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">{s.storeName}</p>
           {s.address && <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0" />{s.address}</p>}
           {s.phone && <p className="flex items-center gap-2"><Phone className="size-4 shrink-0" />{s.phone}</p>}
+          {s.instagram && (
+            <a href={`https://instagram.com/${s.instagram}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-foreground">
+              <AtSign className="size-4 shrink-0" />{s.instagram}
+            </a>
+          )}
         </div>
       </footer>
     </div>

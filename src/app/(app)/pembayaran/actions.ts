@@ -19,7 +19,7 @@ export const confirmPaymentAction = safeAction(async (fd) => {
     .run();
   if (res.rowsAffected === 0) throw new BizError("Pembayaran sudah diproses sebelumnya.");
   revalidatePath("/", "layout");
-  return { ok: "Pembayaran ditandai lunas." };
+  return { ok: "Dana diterima, pembayaran tercatat." };
 });
 
 export const rejectPaymentAction = safeAction(async (fd) => {

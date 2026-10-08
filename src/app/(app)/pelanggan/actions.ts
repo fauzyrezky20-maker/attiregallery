@@ -7,15 +7,16 @@ import { db, schema } from "@/db";
 import { FITTING_STATUS } from "@/db/schema";
 import { safeAction } from "@/lib/action";
 import { requireUser } from "@/lib/session";
-import { BizError, topUpDeposit, spendDeposit } from "@/lib/orders";
-import { parseLocalDateTime, str, toInt, toNum } from "@/lib/utils";
+import { BizError } from "@/lib/orders";
+import { parseLocalDateTime, str, toNum } from "@/lib/utils";
+import { deleteUpload, saveUpload } from "@/lib/upload";
 
 export const saveCustomerAction = safeAction(async (fd) => {
   await requireUser("pelanggan");
   const id = str(fd.get("id"));
   const name = str(fd.get("name"));
   if (!name) throw new BizError("Nama pelanggan wajib diisi.");
-  const data = { name, phone: str(fd.get("phone")), address: str(fd.get("address")) };
+  const data = { name, phone: str(fd.get("phone")), address: str(fd.get("address")), eventType: str(fd.get("eventType")), campus: str(fd.get("campus")) };
   if (id) {
     await db.update(schema.customers).set(data).where(eq(schema.customers.id, id));
     revalidatePath("/pelanggan");
@@ -53,6 +54,33 @@ export const saveFittingAction = safeAction(async (fd) => {
   return { ok: "Jadwal fitting tersimpan." };
 });
 
+/** Hasil fitting: foto konsumen + ukuran badan, sekaligus tandai fitting selesai. */
+export const saveFittingResultAction = safeAction(async (fd) => {
+  await requireUser("fitting");
+  const id = String(fd.get("id"));
+  const fit = await db.query.fittingSchedules.findFirst({ where: eq(schema.fittingSchedules.id, id) });
+  if (!fit) throw new BizError("Jadwal fitting tidak ditemukan.");
+  const photoUrl = await saveUpload(fd.get("photo"), "fitting");
+  const v = {
+    chest: toNum(fd.get("chest")), waist: toNum(fd.get("waist")), hip: toNum(fd.get("hip")),
+    shoulder: toNum(fd.get("shoulder")), sleeve: toNum(fd.get("sleeve")), length: toNum(fd.get("length")),
+  };
+  const notes = str(fd.get("notes"));
+  if (!photoUrl && Object.values(v).every((x) => x == null) && !notes) throw new BizError("Unggah foto atau isi minimal satu ukuran.");
+  await db.transaction(async (tx) => {
+    if (Object.values(v).some((x) => x != null)) {
+      await tx.insert(schema.measurements).values({ customerId: fit.customerId, orderId: fit.orderId, notes, ...v }).run();
+    }
+    await tx.update(schema.fittingSchedules)
+      .set({ ...(photoUrl ? { photoUrl } : {}), ...(notes ? { notes } : {}), ...(fd.get("done") === "on" ? { status: "selesai" as const } : {}) })
+      .where(eq(schema.fittingSchedules.id, id))
+      .run();
+  });
+  if (photoUrl && fit.photoUrl) await deleteUpload(fit.photoUrl);
+  revalidatePath("/", "layout");
+  return { ok: "Hasil fitting tersimpan." };
+});
+
 export const setFittingStatusAction = safeAction(async (fd) => {
   await requireUser("fitting");
   const status = String(fd.get("status")) as (typeof FITTING_STATUS)[number];
@@ -60,20 +88,4 @@ export const setFittingStatusAction = safeAction(async (fd) => {
   await db.update(schema.fittingSchedules).set({ status }).where(eq(schema.fittingSchedules.id, String(fd.get("id"))));
   revalidatePath("/", "layout");
   return { ok: "Status fitting diperbarui." };
-});
-
-export const depositAction = safeAction(async (fd) => {
-  await requireUser("tabungan");
-  const customerId = String(fd.get("customerId"));
-  const type = String(fd.get("type"));
-  const amount = toInt(fd.get("amount"));
-  const note = str(fd.get("note"));
-  await db.transaction(async (tx) => {
-    if (type === "pakai") {
-      if (amount <= 0) throw new BizError("Nominal harus lebih dari 0.");
-      await spendDeposit(tx, customerId, amount, null, note ?? "Penarikan / pemakaian saldo");
-    } else await topUpDeposit(tx, customerId, amount, note);
-  });
-  revalidatePath("/", "layout");
-  return { ok: type === "pakai" ? "Pemakaian saldo dicatat." : "Setoran tabungan dicatat." };
 });
