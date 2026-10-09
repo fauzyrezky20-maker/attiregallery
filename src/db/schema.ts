@@ -196,6 +196,21 @@ export const expenses = sqliteTable("expenses", {
   createdAt: createdAt(),
 });
 
+/** Pemasukan yang dicatat manual (mis. data lama sebelum aplikasi dipakai), di luar pembayaran pesanan. */
+export const incomes = sqliteTable(
+  "incomes",
+  {
+    id: id(),
+    date: text("date").notNull(),
+    amount: integer("amount").notNull(),
+    method: text("method").$type<PaymentMethod>().notNull().default("tunai"),
+    category: text("category").notNull().default("Sewa"),
+    note: text("note"),
+    createdAt: createdAt(),
+  },
+  (t) => [index("incomes_date_idx").on(t.date)],
+);
+
 export const employees = sqliteTable("employees", {
   id: id(),
   userId: text("user_id").references(() => users.id, { onDelete: "set null" }),

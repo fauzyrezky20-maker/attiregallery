@@ -4,7 +4,7 @@ import { financeReport } from "@/lib/reports";
 import { getSettings } from "@/lib/settings";
 import { fmtDate, fmtDateTime } from "@/lib/utils";
 import { readPeriod, type ReportSearch } from "../params";
-import { ExpenseByCategory, ExpenseTable, IncomeByMethod, SalesTable, SectionTitle, Summary } from "../report-view";
+import { ExpenseByCategory, ExpenseTable, IncomeByMethod, ManualIncomeTable, SalesTable, SectionTitle, Summary } from "../report-view";
 
 export default async function CetakLaporan({ searchParams }: { searchParams: Promise<ReportSearch> }) {
   await requireUser("laporan");
@@ -21,6 +21,7 @@ export default async function CetakLaporan({ searchParams }: { searchParams: Pro
       <SectionTitle>Pemasukan</SectionTitle>
       <IncomeByMethod r={r} />
       <SalesTable r={r} links={false} />
+      <ManualIncomeTable r={r} />
       <SectionTitle>Pengeluaran</SectionTitle>
       <ExpenseByCategory r={r} />
       <ExpenseTable r={r} />

@@ -10,7 +10,7 @@ type R = Awaited<ReturnType<typeof financeReport>>;
 export function Summary({ r }: { r: R }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <Card><CardContent className="pt-4 md:pt-5"><p className="text-sm text-muted-foreground">Total pemasukan</p><p className="text-2xl font-semibold text-emerald-700 dark:text-emerald-400">{rupiah(r.income)}</p><p className="text-xs text-muted-foreground">{r.sales.length} transaksi</p></CardContent></Card>
+      <Card><CardContent className="pt-4 md:pt-5"><p className="text-sm text-muted-foreground">Total pemasukan</p><p className="text-2xl font-semibold text-emerald-700 dark:text-emerald-400">{rupiah(r.income)}</p><p className="text-xs text-muted-foreground">{r.sales.length + r.manualRows.length} transaksi</p></CardContent></Card>
       <Card><CardContent className="pt-4 md:pt-5"><p className="text-sm text-muted-foreground">Total pengeluaran</p><p className="text-2xl font-semibold text-destructive">{rupiah(r.expense)}</p><p className="text-xs text-muted-foreground">{r.expenseRows.length} catatan</p></CardContent></Card>
     </div>
   );
@@ -68,7 +68,7 @@ export function ExpenseTable({ r, actions }: { r: R; actions?: (id: string) => R
 export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Daftar pemasukan ({r.sales.length} transaksi)</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Pembayaran pesanan ({r.sales.length} transaksi)</CardTitle></CardHeader>
       <CardContent>
         {r.sales.length === 0 ? <Empty>Tidak ada pemasukan pada periode ini.</Empty> : (
           <Table>
@@ -93,4 +93,29 @@ export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="mt-2 border-b pb-2 text-lg font-semibold">{children}</h2>;
+}
+
+export function ManualIncomeTable({ r, actions }: { r: R; actions?: (id: string) => React.ReactNode }) {
+  if (r.manualRows.length === 0 && !actions) return null;
+  return (
+    <Card>
+      <CardHeader><CardTitle>Pemasukan dicatat manual ({r.manualRows.length})</CardTitle></CardHeader>
+      <CardContent>
+        {r.manualRows.length === 0 ? <Empty>Belum ada. Pakai form &quot;Catat pemasukan&quot; atau impor CSV untuk data lama.</Empty> : (
+          <Table>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH>{actions && <TH></TH>}</TR></THead>
+            <TBody>
+              {r.manualRows.map((x) => (
+                <TR key={x.id}>
+                  <TD className="whitespace-nowrap">{fmtDate(x.date)}</TD><TD>{x.category}</TD><TD className="text-muted-foreground">{x.note}</TD>
+                  <TD>{METHOD_LABEL[x.method]}</TD><TD className="text-right">{rupiah(x.amount)}</TD>
+                  {actions && <TD className="text-right">{actions(x.id)}</TD>}
+                </TR>
+              ))}
+            </TBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
 }

@@ -28,6 +28,8 @@ export async function GET(req: Request) {
     ...r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, m.count, m.total]), [],
     ["Daftar pemasukan"], ["Waktu", "No. pesanan", "Pelanggan", "Metode", "Nominal"],
     ...r.sales.map((x) => [ts(x.paidAt), x.orderId.slice(0, 8), x.customer, METHOD[x.method] ?? x.method, x.amount]), [],
+    ["Pemasukan dicatat manual"], ["Tanggal", "Jenis", "Keterangan", "Metode", "Nominal"],
+    ...r.manualRows.map((x) => [x.date, x.category, x.note, METHOD[x.method] ?? x.method, x.amount]), [],
     ["PENGELUARAN"], ["Total pengeluaran", r.expense], [],
     ["Per jenis"], ["Jenis", "Total"],
     ...r.expenseByCategory.map(([c, t]) => [c, t]), [],

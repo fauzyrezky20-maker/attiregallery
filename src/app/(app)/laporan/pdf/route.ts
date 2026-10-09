@@ -35,12 +35,22 @@ export async function GET(req: Request) {
     body: r.incomeByMethod.length ? r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, String(m.count), rupiah(m.total)]) : [["Belum ada pemasukan", "", ""]],
     columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
   });
+  if (r.sales.length) {
   autoTable(doc, {
-    startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Metode", "Nominal"]],
-    body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, METHOD[x.method] ?? x.method, rupiah(x.amount)]),
-    foot: [["", "", "", "Total", rupiah(r.income)]],
-    columnStyles: { 4: { halign: "right" } },
-  });
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Metode", "Nominal"]],
+      body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, METHOD[x.method] ?? x.method, rupiah(x.amount)]),
+      foot: [["", "", "", "Subtotal", rupiah(r.salesTotal)]],
+      columnStyles: { 4: { halign: "right" } },
+    });
+  }
+  if (r.manualRows.length) {
+    autoTable(doc, {
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Metode", "Nominal"]],
+      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, rupiah(x.amount)]),
+      foot: [["", "", "", "Subtotal", rupiah(r.manualTotal)]],
+      columnStyles: { 4: { halign: "right" } },
+    });
+  }
 
   y = lastY() + 12;
   if (y > 260) { doc.addPage(); y = 16; }
