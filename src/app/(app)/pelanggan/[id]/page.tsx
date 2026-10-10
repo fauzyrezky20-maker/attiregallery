@@ -14,12 +14,9 @@ import { getAllowedMenus, requireUser } from "@/lib/session";
 import { fmtDate, fmtDateTime, rupiah } from "@/lib/utils";
 import { addMeasurementAction, saveCustomerAction } from "../actions";
 import { EVENT_TYPES } from "@/lib/catalog";
+import { SIZE_FIELDS, SIZE_GROUPS } from "@/lib/measurements";
 
 const s = schema;
-const SIZE_FIELDS = [
-  ["chest", "Lingkar dada"], ["waist", "Lingkar pinggang"], ["hip", "Lingkar pinggul"],
-  ["shoulder", "Lebar bahu"], ["sleeve", "Panjang lengan"], ["length", "Panjang badan"],
-] as const;
 
 export default async function PelangganDetail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ pesanan?: string }> }) {
   const user = await requireUser("pelanggan");
@@ -46,25 +43,37 @@ export default async function PelangganDetail({ params, searchParams }: { params
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="grid gap-6 content-start lg:col-span-2">
           <Card id="ukuran">
-            <CardHeader><CardTitle>Ukuran badan</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Keterangan resize</CardTitle></CardHeader>
             <CardContent className="grid gap-4">
               {last ? (
                 <div>
                   <p className="mb-2 text-sm text-muted-foreground">Ukuran terakhir · {fmtDateTime(last.measuredAt)}</p>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {SIZE_FIELDS.map(([k, l]) => (
-                      <div key={k} className="rounded-md bg-muted p-2"><p className="text-xs text-muted-foreground">{l}</p><p className="font-semibold">{last[k] != null ? `${last[k]} cm` : "-"}</p></div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {SIZE_GROUPS.map((g) => (
+                      <div key={g.title}>
+                        <p className="mb-1 text-sm font-medium">{g.title}</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {g.fields.map(([k, l]) => (
+                            <div key={k} className="rounded-md bg-muted p-2"><p className="text-xs text-muted-foreground">{l}</p><p className="font-semibold">{last[k] != null ? `${last[k]} cm` : "-"}</p></div>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   {last.notes && <p className="mt-2 text-sm">{last.notes}</p>}
                 </div>
-              ) : <p className="text-sm text-muted-foreground">Belum ada catatan ukuran.</p>}
+              ) : <p className="text-sm text-muted-foreground">Belum ada keterangan resize.</p>}
               <ActionForm action={addMeasurementAction} resetOnSuccess className="rounded-lg border p-4">
-                <p className="font-medium">Catat ukuran baru (cm)</p>
+                <p className="font-medium">Catat keterangan resize baru (cm)</p>
                 <input type="hidden" name="customerId" value={c.id} />
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {SIZE_FIELDS.map(([k, l]) => <Field key={k} label={l}><Input name={k} type="number" step="0.1" min={0} inputMode="decimal" /></Field>)}
-                </div>
+                {SIZE_GROUPS.map((g) => (
+                  <fieldset key={g.title} className="grid gap-2">
+                    <legend className="mb-1 text-sm font-medium">{g.title}</legend>
+                    <div className="grid grid-cols-3 gap-3">
+                      {g.fields.map(([k, l]) => <Field key={k} label={l}><Input name={k} type="number" step="0.1" min={0} inputMode="decimal" /></Field>)}
+                    </div>
+                  </fieldset>
+                ))}
                 <Field label="Untuk pesanan (opsional)">
                   <Select name="orderId" defaultValue={pesanan ?? ""}>
                     <option value="">—</option>
@@ -72,13 +81,13 @@ export default async function PelangganDetail({ params, searchParams }: { params
                   </Select>
                 </Field>
                 <Field label="Catatan"><Textarea name="notes" rows={2} placeholder="Mis. lengan dibuat lebih longgar" /></Field>
-                <SubmitButton className="justify-self-start">Simpan ukuran</SubmitButton>
+                <SubmitButton className="justify-self-start">Simpan keterangan</SubmitButton>
               </ActionForm>
               {measures.length > 1 && (
                 <details>
                   <summary className="cursor-pointer text-sm font-medium">Riwayat ukuran ({measures.length})</summary>
                   <Table className="mt-2">
-                    <THead><TR><TH>Tanggal</TH>{SIZE_FIELDS.map(([k, l]) => <TH key={k}>{l.replace("Lingkar ", "").replace("Panjang ", "P. ")}</TH>)}<TH>Catatan</TH></TR></THead>
+                    <THead><TR><TH>Tanggal</TH>{SIZE_FIELDS.map(([k, l]) => <TH key={k}>{l}</TH>)}<TH>Catatan</TH></TR></THead>
                     <TBody>
                       {measures.map((m) => <TR key={m.id}><TD className="whitespace-nowrap">{fmtDateTime(m.measuredAt)}</TD>{SIZE_FIELDS.map(([k]) => <TD key={k}>{m[k] ?? "-"}</TD>)}<TD>{m.notes}</TD></TR>)}
                     </TBody>

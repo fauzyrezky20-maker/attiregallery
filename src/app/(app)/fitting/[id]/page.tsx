@@ -10,12 +10,9 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { requireUser } from "@/lib/session";
 import { fmtDateTime } from "@/lib/utils";
 import { saveFittingResultAction } from "../../pelanggan/actions";
+import { SIZE_GROUPS } from "@/lib/measurements";
 
 const s = schema;
-const SIZE_FIELDS = [
-  ["chest", "Lingkar dada"], ["waist", "Lingkar pinggang"], ["hip", "Lingkar pinggul"],
-  ["shoulder", "Lebar bahu"], ["sleeve", "Panjang lengan"], ["length", "Panjang badan"],
-] as const;
 
 export default async function FittingDetail({ params }: { params: Promise<{ id: string }> }) {
   await requireUser("fitting");
@@ -47,15 +44,20 @@ export default async function FittingDetail({ params }: { params: Promise<{ id: 
           </CardContent>
         </Card>
         <Card className="h-fit">
-          <CardHeader><CardTitle>Hasil fitting: foto & ukuran</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Hasil fitting: foto & keterangan resize</CardTitle></CardHeader>
           <CardContent>
             <ActionForm action={saveFittingResultAction}>
               <input type="hidden" name="id" value={fit.id} />
               <Field label={fit.photoUrl ? "Ganti foto konsumen" : "Foto konsumen"} hint="Bisa langsung dari kamera HP"><Input type="file" name="photo" accept="image/*" capture="environment" /></Field>
-              <p className="text-sm font-medium">Ukuran badan (cm){last && <span className="font-normal text-muted-foreground"> · terisi dari ukuran terakhir {fmtDateTime(last.measuredAt)}</span>}</p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {SIZE_FIELDS.map(([k, l]) => <Field key={k} label={l}><Input name={k} type="number" step="0.1" min={0} inputMode="decimal" defaultValue={last?.[k] ?? ""} /></Field>)}
-              </div>
+              <p className="text-sm font-medium">Keterangan resize (cm){last && <span className="font-normal text-muted-foreground"> · terisi dari ukuran terakhir {fmtDateTime(last.measuredAt)}</span>}</p>
+              {SIZE_GROUPS.map((g) => (
+                  <fieldset key={g.title} className="grid gap-2">
+                    <legend className="mb-1 text-sm font-medium">{g.title}</legend>
+                    <div className="grid grid-cols-3 gap-3">
+                      {g.fields.map(([k, l]) => <Field key={k} label={l}><Input name={k} type="number" step="0.1" min={0} inputMode="decimal" defaultValue={last?.[k] ?? ""} /></Field>)}
+                    </div>
+                  </fieldset>
+                ))}
               <Field label="Catatan"><Textarea name="notes" rows={2} defaultValue={fit.notes ?? ""} placeholder="Mis. lengan perlu di-resize 2 cm" /></Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="done" defaultChecked={fit.status === "terjadwal"} className="size-4" /> Tandai fitting selesai</label>
               <SubmitButton className="justify-self-start">Simpan hasil fitting</SubmitButton>

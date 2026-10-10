@@ -9,6 +9,7 @@ import { safeAction } from "@/lib/action";
 import { requireUser } from "@/lib/session";
 import { BizError } from "@/lib/orders";
 import { parseLocalDateTime, str, toNum } from "@/lib/utils";
+import { readSizes } from "@/lib/measurements";
 import { deleteUpload, saveUpload } from "@/lib/upload";
 
 export const saveCustomerAction = safeAction(async (fd) => {
@@ -29,14 +30,11 @@ export const saveCustomerAction = safeAction(async (fd) => {
 export const addMeasurementAction = safeAction(async (fd) => {
   await requireUser("pelanggan");
   const customerId = String(fd.get("customerId"));
-  const v = {
-    chest: toNum(fd.get("chest")), waist: toNum(fd.get("waist")), hip: toNum(fd.get("hip")),
-    shoulder: toNum(fd.get("shoulder")), sleeve: toNum(fd.get("sleeve")), length: toNum(fd.get("length")),
-  };
+  const v = readSizes(fd, toNum);
   if (Object.values(v).every((x) => x == null)) throw new BizError("Isi minimal satu ukuran.");
   await db.insert(schema.measurements).values({ customerId, orderId: str(fd.get("orderId")), notes: str(fd.get("notes")), ...v });
   revalidatePath(`/pelanggan/${customerId}`);
-  return { ok: "Ukuran tersimpan." };
+  return { ok: "Keterangan resize tersimpan." };
 });
 
 export const saveFittingAction = safeAction(async (fd) => {
@@ -61,10 +59,7 @@ export const saveFittingResultAction = safeAction(async (fd) => {
   const fit = await db.query.fittingSchedules.findFirst({ where: eq(schema.fittingSchedules.id, id) });
   if (!fit) throw new BizError("Jadwal fitting tidak ditemukan.");
   const photoUrl = await saveUpload(fd.get("photo"), "fitting");
-  const v = {
-    chest: toNum(fd.get("chest")), waist: toNum(fd.get("waist")), hip: toNum(fd.get("hip")),
-    shoulder: toNum(fd.get("shoulder")), sleeve: toNum(fd.get("sleeve")), length: toNum(fd.get("length")),
-  };
+  const v = readSizes(fd, toNum);
   const notes = str(fd.get("notes"));
   if (!photoUrl && Object.values(v).every((x) => x == null) && !notes) throw new BizError("Unggah foto atau isi minimal satu ukuran.");
   await db.transaction(async (tx) => {

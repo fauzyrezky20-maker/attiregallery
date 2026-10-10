@@ -233,6 +233,8 @@ export const measurements = sqliteTable("measurements", {
   shoulder: real("shoulder"),
   sleeve: real("sleeve"),
   length: real("length"),
+  thigh: real("thigh"),
+  knee: real("knee"),
   notes: text("notes"),
   measuredAt: integer("measured_at", { mode: "timestamp_ms" })
     .notNull()

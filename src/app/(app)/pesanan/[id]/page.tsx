@@ -1,3 +1,4 @@
+import { sizeSummary } from "@/lib/measurements";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Printer, Ruler, CalendarPlus, MessageCircle } from "lucide-react";
@@ -201,7 +202,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
               {d.fittings.length === 0 && d.measures.length === 0 && <p className="text-muted-foreground">Belum ada jadwal fitting atau ukuran untuk pesanan ini.</p>}
               {d.fittings.map((f) => <div key={f.id} className="flex items-center justify-between"><span>Fitting {fmtDateTime(f.scheduledAt)}</span><StatusBadge status={f.status} /></div>)}
               {d.measures.map((m) => (
-                <p key={m.id} className="text-muted-foreground">Ukuran {fmtDateTime(m.measuredAt)}: dada {m.chest ?? "-"}, pinggang {m.waist ?? "-"}, panjang {m.length ?? "-"} cm</p>
+                <p key={m.id} className="text-muted-foreground">Resize {fmtDateTime(m.measuredAt)}: {sizeSummary(m)} (cm)</p>
               ))}
             </CardContent>
           </Card>

@@ -27,7 +27,7 @@ export default async function PelangganPage({ searchParams }: { searchParams: Pr
     .limit(300);
   return (
     <>
-      <PageHeader title="Pelanggan" description="Data pelanggan, jenis acara, asal kampus, ukuran badan, dan fitting." />
+      <PageHeader title="Pelanggan" description="Data pelanggan, jenis acara, asal kampus, keterangan resize, dan fitting." />
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <Card>
           <CardContent className="pt-4 md:pt-5">
