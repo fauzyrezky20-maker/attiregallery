@@ -58,7 +58,7 @@ export default async function FittingDetail({ params }: { params: Promise<{ id: 
                     </div>
                   </fieldset>
                 ))}
-              <Field label="Catatan"><Textarea name="notes" rows={2} defaultValue={fit.notes ?? ""} placeholder="Mis. lengan perlu di-resize 2 cm" /></Field>
+              <Field label="Keterangan fitting"><Textarea name="notes" rows={2} defaultValue={fit.notes ?? ""} placeholder="Mis. lengan perlu di-resize 2 cm" /></Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="done" defaultChecked={fit.status === "terjadwal"} className="size-4" /> Tandai fitting selesai</label>
               <SubmitButton className="justify-self-start">Simpan hasil fitting</SubmitButton>
             </ActionForm>

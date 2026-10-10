@@ -104,7 +104,7 @@ export default async function FittingPage({ searchParams }: { searchParams: Prom
               </Field>
               {sp.pesanan && <input type="hidden" name="orderId" value={sp.pesanan} />}
               <Field label="Tanggal & jam"><Input type="datetime-local" name="scheduledAt" required /></Field>
-              <Field label="Catatan"><Textarea name="notes" rows={2} placeholder="Mis. bawa sepatu hak untuk ukur panjang" /></Field>
+              <Field label="Keterangan fitting"><Textarea name="notes" rows={2} placeholder="Mis. bawa sepatu hak untuk ukur panjang" /></Field>
               <SubmitButton>Simpan jadwal</SubmitButton>
               <p className="text-xs text-muted-foreground">Pelanggan baru? Tambahkan dulu di menu <Link href="/pelanggan" className="underline">Pelanggan</Link>.</p>
             </ActionForm>
