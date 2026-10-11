@@ -205,7 +205,7 @@ export function KasirForm(props: Props) {
               <div className="flex justify-between"><span>Subtotal sewa</span><span>{rupiah(subtotal)}</span></div>
               <div className="flex items-center justify-between gap-3">
                 <span>Diskon</span>
-                <Input name="discount" type="number" min={0} step={1000} className="h-8 w-36 text-right" value={discount || ""} placeholder="0" onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))} />
+                <Input name="discount" type="number" min={0} step={1} className="h-8 w-36 text-right" value={discount || ""} placeholder="0" onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))} />
               </div>
               <div className="flex justify-between text-xs text-muted-foreground"><span>Denda jika telat (per hari)</span><span>{rupiah(finePerDay)}</span></div>
               <div className="mt-1 flex justify-between text-lg font-semibold"><span>Total</span><span>{rupiah(total)}</span></div>
@@ -239,7 +239,7 @@ export function KasirForm(props: Props) {
             </div>
             {payKind === "dp" ? (
               <Field label="Nominal DP" hint={total > 0 ? `Minimal ${rupiah(minDp)} · sisa ${rupiah(Math.max(0, total - pay))} dilunasi paling lambat ${fmtDate(settleBy)} (H-${props.settleDaysBefore})` : undefined}>
-                <Input name="payAmount" type="number" min={minDp} max={total} step={1000} value={pay} onChange={(e) => setPayAmount(Math.max(0, Number(e.target.value) || 0))} />
+                <Input name="payAmount" type="number" min={minDp} max={total} step={1} value={pay} onChange={(e) => setPayAmount(Math.max(0, Number(e.target.value) || 0))} />
               </Field>
             ) : (
               <>

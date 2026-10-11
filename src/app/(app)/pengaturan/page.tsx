@@ -61,7 +61,7 @@ export default async function PengaturanPage() {
             <ActionForm action={saveRulesAction}>
               <Field label="Harga sewa berlaku untuk (hari)" hint="Harga produk adalah harga per paket ini. Sewa lebih lama dihitung kelipatannya."><Input name="defaultRentDays" type="number" min={1} defaultValue={s.defaultRentDays} /></Field>
               <p className="rounded-md bg-muted p-3 text-sm">Denda keterlambatan: <b>per hari sesuai harga sewa baju</b> yang dipinjam (dihitung otomatis saat pengembalian).</p>
-              <Field label="DP minimal untuk fix booking (Rp)"><Input name="dpAmount" type="number" min={0} step={1000} defaultValue={s.dpAmount} /></Field>
+              <Field label="DP minimal untuk fix booking (Rp)"><Input name="dpAmount" type="number" min={0} step={1} defaultValue={s.dpAmount} /></Field>
               <Field label="Pelunasan paling lambat H-berapa"><Input name="settleDaysBefore" type="number" min={0} max={30} defaultValue={s.settleDaysBefore} /></Field>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Jam ambil mulai"><Input name="pickupFrom" type="time" defaultValue={s.pickupFrom} /></Field>

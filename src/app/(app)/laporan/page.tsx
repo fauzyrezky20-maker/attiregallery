@@ -75,7 +75,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
                   <Input name="category" list="inc-cat" defaultValue="Sewa" required />
                   <datalist id="inc-cat">{INCOME_CATS.map((c) => <option key={c} value={c} />)}</datalist>
                 </Field>
-                <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} step={500} required /></Field>
+                <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} step={1} required /></Field>
                 <Field label="Metode">
                   <Select name="method" defaultValue="tunai"><option value="tunai">Tunai</option><option value="qris">QRIS</option><option value="transfer">Transfer</option></Select>
                 </Field>
@@ -106,7 +106,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
                   <Input name="category" list="exp-cat" required placeholder="Mis. Laundry & perawatan" />
                   <datalist id="exp-cat">{EXPENSE_CATS.map((c) => <option key={c} value={c} />)}</datalist>
                 </Field>
-                <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} step={500} required /></Field>
+                <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} step={1} required /></Field>
                 <Field label="Keterangan"><Input name="note" /></Field>
                 <SubmitButton>Simpan</SubmitButton>
               </ActionForm>
