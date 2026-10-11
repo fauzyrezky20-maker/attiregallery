@@ -32,13 +32,24 @@ function parseCsv(text: string) {
 
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
 
-/** Terima 2026-06-15, 15/06/2026, 15-6-26, atau "15 Jun 2026". */
-export function parseDate(v: string): string | null {
+/**
+ * Terima 2026-06-15, 15/06/2026, 15-6-26, "15 Jun 2026", atau nomor seri tanggal Excel.
+ * `monthFirst` untuk file dari Excel berbahasa Inggris (9/15/2026 = 15 September).
+ */
+export function parseDate(v: string, monthFirst = false): string | null {
   const s = v.trim().toLowerCase();
   let y: number, m: number, d: number;
+  if (/^\d{5}(\.\d+)?$/.test(s) && +s > 20000 && +s < 80000) {
+    // Nomor seri Excel: hari sejak 1899-12-30.
+    return new Date(Date.UTC(1899, 11, 30) + Math.floor(+s) * 86400000).toISOString().slice(0, 10);
+  }
   let r = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
   if (r) [y, m, d] = [+r[1], +r[2], +r[3]];
-  else if ((r = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/))) [d, m, y] = [+r[1], +r[2], +r[3]];
+  else if ((r = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})(?:\s.*)?$/))) {
+    const a = +r[1], b = +r[2];
+    const mf = b > 12 ? true : a > 12 ? false : monthFirst;
+    [d, m, y] = mf ? [b, a, +r[3]] : [a, b, +r[3]];
+  }
   else if ((r = s.match(/^(\d{1,2})\s+([a-z]{3})[a-z]*\.?\s+(\d{2,4})$/)) && MONTHS[r[2]]) [d, m, y] = [+r[1], MONTHS[r[2]], +r[3]];
   else return null;
   if (y < 100) y += 2000;
@@ -71,6 +82,10 @@ export function parseFinanceCsv(text: string) {
   let iDate = col("tanggal", "tgl", "date"), iKind = col("jenis", "tipe", "type"), iCat = col("kategori", "category"),
     iNote = col("keterangan", "catatan", "note", "uraian"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara");
   let start = 1;
+  // Tentukan urutan tanggal dari isi file: jika ada 9/15/2026 → bulan dulu (format Excel Inggris).
+  const dateCells = rows.map((x) => x[iDate < 0 ? 0 : iDate] ?? "");
+  const pairs = dateCells.map((c) => c.trim().match(/^(\d{1,2})[-/.](\d{1,2})[-/.]\d{2,4}/)).filter((x) => !!x);
+  const monthFirst = pairs.some((x) => +x[2] > 12) && !pairs.some((x) => +x[1] > 12);
   if (iDate < 0 || iAmt < 0) {
     // Tanpa baris judul: anggap urutan sesuai template.
     [iDate, iKind, iCat, iNote, iAmt, iMet] = [0, 1, 2, 3, 4, 5];
@@ -79,7 +94,7 @@ export function parseFinanceCsv(text: string) {
   for (let n = start; n < rows.length; n++) {
     const r = rows[n];
     const line = n + 1;
-    const date = parseDate(r[iDate] ?? "");
+    const date = parseDate(r[iDate] ?? "", monthFirst);
     const amount = parseAmount(r[iAmt] ?? "");
     const kindText = (r[iKind] ?? "").toLowerCase();
     const kind = /luar|biaya|expense|^out/.test(kindText) ? "keluar" : /masuk|income|pendapatan|^in$/.test(kindText) ? "masuk" : null;

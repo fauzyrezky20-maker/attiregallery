@@ -81,6 +81,8 @@ export const importFinanceAction = safeAction(async (fd) => {
     }
   });
   revalidatePath("/", "layout");
-  const extra = [skipped ? `${skipped} baris dilewati karena sudah ada` : "", errors.length ? `${errors.length} baris gagal: ${errors.slice(0, 3).join(" ")}` : ""].filter(Boolean).join(". ");
+  const BLN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const months = [...new Set(rows.map((r) => r.date.slice(0, 7)))].sort().map((m) => `${BLN[+m.slice(5, 7) - 1]} ${m.slice(0, 4)}`);
+  const extra = [months.length ? `Data masuk ke bulan: ${months.join(", ")}` : "", skipped ? `${skipped} baris dilewati karena sudah ada` : "", errors.length ? `${errors.length} baris gagal: ${errors.slice(0, 3).join(" ")}` : ""].filter(Boolean).join(". ");
   return { ok: `Impor selesai: ${nIn} pemasukan dan ${nOut} pengeluaran ditambahkan.${extra ? " " + extra.replace(/\.$/, "") + "." : ""}` };
 });
