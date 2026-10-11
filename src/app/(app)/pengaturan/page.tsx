@@ -7,7 +7,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { MENUS } from "@/lib/permissions";
-import { saveGuideAction, saveSavingsAction, savePaymentAction, savePermissionsAction, saveProfileAction, saveRulesAction, saveNotifAction, saveTermsAction } from "./actions";
+import { resetDataAction, saveGuideAction, saveSavingsAction, savePaymentAction, savePermissionsAction, saveProfileAction, saveRulesAction, saveNotifAction, saveTermsAction } from "./actions";
 
 const Check = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name={name} defaultChecked={checked} className="size-4" /> {label}</label>
@@ -145,6 +145,28 @@ export default async function PengaturanPage() {
             </ActionForm>
           </CardContent>
         </Card>
+
+        {user.role === "pemilik" && (
+          <Card className="border-destructive/40 lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-destructive">Reset data uji coba</CardTitle>
+              <CardDescription>
+                Hapus data yang dibuat saat mencoba aplikasi. <b>Produk & foto, pengaturan toko, akun login, dan karyawan tidak ikut terhapus.</b> Data yang dihapus tidak bisa dikembalikan.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ActionForm action={resetDataAction} resetOnSuccess confirm="Yakin hapus data yang dipilih? Tidak bisa dibatalkan.">
+                <Check name="transaksi" label="Pesanan, pembayaran & nota (stok kebaya kembali penuh)" checked={false} />
+                <Check name="pelanggan" label="Pelanggan, jadwal fitting & keterangan resize (pesanan ikut terhapus)" checked={false} />
+                <Check name="keuangan" label="Pemasukan manual & pengeluaran di Laporan" checked={false} />
+                <Check name="tabungan" label="Tabungan toko" checked={false} />
+                <Check name="absensi" label="Absensi karyawan" checked={false} />
+                <Field label="Ketik RESET untuk konfirmasi" className="max-w-56"><Input name="confirm" autoComplete="off" required /></Field>
+                <SubmitButton variant="destructive" className="justify-self-start">Hapus data terpilih</SubmitButton>
+              </ActionForm>
+            </CardContent>
+          </Card>
+        )}
 
         {user.role === "pemilik" && (
           <Card className="lg:col-span-2">

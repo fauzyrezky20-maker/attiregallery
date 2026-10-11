@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db, schema } from "@/db";
 import { safeAction } from "@/lib/action";
 import { requireUser } from "@/lib/session";
@@ -109,4 +109,56 @@ export const savePermissionsAction = safeAction(async (fd) => {
   });
   revalidatePath("/", "layout");
   return { ok: "Hak akses disimpan." };
+});
+
+/** Hapus data uji coba. Produk & foto, pengaturan toko, akun, dan karyawan tetap ada. */
+export const resetDataAction = safeAction(async (fd) => {
+  const user = await requireUser("pengaturan");
+  if (user.role !== "pemilik") throw new BizError("Hanya pemilik yang boleh mereset data.");
+  if (String(fd.get("confirm") ?? "").trim().toUpperCase() !== "RESET") throw new BizError('Ketik RESET (huruf besar) untuk konfirmasi.');
+  const pick = (k: string) => fd.get(k) === "on";
+  const customers = pick("pelanggan");
+  const orders = pick("transaksi") || customers; // pesanan terkait pelanggan ikut terhapus
+  const finance = pick("keuangan"), savings = pick("tabungan"), absensi = pick("absensi");
+  if (!orders && !finance && !savings && !absensi) throw new BizError("Pilih minimal satu jenis data yang mau dihapus.");
+  const s = schema;
+  const done: string[] = [];
+  await db.transaction(async (tx) => {
+    if (orders) {
+      await tx.delete(s.termsConsents).run();
+      await tx.delete(s.payments).run();
+      await tx.delete(s.orderItems).run();
+      await tx.update(s.measurements).set({ orderId: null }).run();
+      await tx.update(s.fittingSchedules).set({ orderId: null }).run();
+      await tx.update(s.depositTransactions).set({ orderId: null }).run();
+      await tx.delete(s.orders).run();
+      // Semua kebaya kembali ke toko.
+      await tx.update(s.products).set({ stockAvailable: sql`${s.products.stockTotal}` }).run();
+      await tx.update(s.products).set({ status: "tersedia" }).where(eq(s.products.status, "disewa")).run();
+      done.push("pesanan & pembayaran");
+    }
+    if (customers) {
+      await tx.delete(s.measurements).run();
+      await tx.delete(s.fittingSchedules).run();
+      await tx.delete(s.depositTransactions).run();
+      await tx.delete(s.customerDeposits).run();
+      await tx.delete(s.customers).run();
+      done.push("pelanggan, fitting & ukuran");
+    }
+    if (finance) {
+      await tx.delete(s.incomes).run();
+      await tx.delete(s.expenses).run();
+      done.push("pemasukan manual & pengeluaran");
+    }
+    if (savings) {
+      await tx.delete(s.storeSavings).run();
+      done.push("tabungan toko");
+    }
+    if (absensi) {
+      await tx.delete(s.attendances).run();
+      done.push("absensi");
+    }
+  });
+  revalidatePath("/", "layout");
+  return { ok: `Data dihapus: ${done.join(", ")}.` };
 });
