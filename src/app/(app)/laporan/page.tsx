@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { requireUser } from "@/lib/session";
+import { asc } from "drizzle-orm";
+import { db, schema } from "@/db";
+import { IncomeCategory } from "./income-category";
 import { financeReport } from "@/lib/reports";
 import { fmtDate, todayStr } from "@/lib/utils";
 import { addExpenseAction, addIncomeAction, deleteExpenseAction, deleteIncomeAction, importFinanceAction } from "./actions";
@@ -19,7 +22,10 @@ const EXPENSE_CATS = ["Laundry & perawatan", "Gaji karyawan", "Sewa tempat", "Li
 export default async function LaporanPage({ searchParams }: { searchParams: Promise<ReportSearch> }) {
   await requireUser("laporan");
   const { period, from, to } = readPeriod(await searchParams);
-  const r = await financeReport(from, to);
+  const [r, productList] = await Promise.all([
+    financeReport(from, to),
+    db.select({ name: schema.products.name, category: schema.products.category, price: schema.products.pricePerDay }).from(schema.products).orderBy(asc(schema.products.category), asc(schema.products.name)),
+  ]);
   const qs = `dari=${from}&sampai=${to}`;
   // Saat melihat bulan lain (mis. September), tanggal isian otomatis ikut bulan itu.
   const today = todayStr();
@@ -75,8 +81,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
               <ActionForm action={addIncomeAction} resetOnSuccess>
                 <Field label="Tanggal" hint={`Tercatat di laporan bulan sesuai tanggal ini`}><Input key={entryDate} type="date" name="date" defaultValue={entryDate} required /></Field>
                 <Field label="Jenis">
-                  <Input name="category" list="inc-cat" defaultValue="Sewa" required />
-                  <datalist id="inc-cat">{INCOME_CATS.map((c) => <option key={c} value={c} />)}</datalist>
+                  <IncomeCategory general={INCOME_CATS} products={productList} />
                 </Field>
                 <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} max={100000000} step={1} required /></Field>
                 <Field label="Metode">
