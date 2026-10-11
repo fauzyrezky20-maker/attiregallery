@@ -21,6 +21,9 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
   const { period, from, to } = readPeriod(await searchParams);
   const r = await financeReport(from, to);
   const qs = `dari=${from}&sampai=${to}`;
+  // Saat melihat bulan lain (mis. September), tanggal isian otomatis ikut bulan itu.
+  const today = todayStr();
+  const entryDate = today >= from && today <= to ? today : from;
 
   return (
     <>
@@ -70,7 +73,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
             <CardContent>
               <p className="mb-3 text-xs text-muted-foreground">Untuk pemasukan di luar kasir, misalnya data lama sejak Juni. Tanggal boleh mundur.</p>
               <ActionForm action={addIncomeAction} resetOnSuccess>
-                <Field label="Tanggal"><Input type="date" name="date" defaultValue={todayStr()} required /></Field>
+                <Field label="Tanggal" hint={`Tercatat di laporan bulan sesuai tanggal ini`}><Input key={entryDate} type="date" name="date" defaultValue={entryDate} required /></Field>
                 <Field label="Jenis">
                   <Input name="category" list="inc-cat" defaultValue="Sewa" required />
                   <datalist id="inc-cat">{INCOME_CATS.map((c) => <option key={c} value={c} />)}</datalist>
@@ -101,7 +104,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
             <CardHeader><CardTitle>Catat pengeluaran</CardTitle></CardHeader>
             <CardContent>
               <ActionForm action={addExpenseAction} resetOnSuccess>
-                <Field label="Tanggal"><Input type="date" name="date" defaultValue={todayStr()} required /></Field>
+                <Field label="Tanggal"><Input key={entryDate} type="date" name="date" defaultValue={entryDate} required /></Field>
                 <Field label="Jenis">
                   <Input name="category" list="exp-cat" required placeholder="Mis. Laundry & perawatan" />
                   <datalist id="exp-cat">{EXPENSE_CATS.map((c) => <option key={c} value={c} />)}</datalist>

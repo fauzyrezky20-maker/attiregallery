@@ -6,7 +6,7 @@ import { db, schema } from "@/db";
 import { safeAction } from "@/lib/action";
 import { requireUser } from "@/lib/session";
 import { BizError } from "@/lib/orders";
-import { str, toInt, todayStr } from "@/lib/utils";
+import { fmtDate, rupiah, str, toInt, todayStr } from "@/lib/utils";
 import { parseDate, parseFinanceCsv } from "@/lib/finance-import";
 
 const MAX_AMOUNT = 100_000_000;
@@ -19,7 +19,7 @@ export const addExpenseAction = safeAction(async (fd) => {
   if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
   await db.insert(schema.expenses).values({ category, amount, note: str(fd.get("note")), date: str(fd.get("date")) ?? todayStr() });
   revalidatePath("/", "layout");
-  return { ok: "Pengeluaran dicatat." };
+  return { ok: `Pengeluaran ${rupiah(amount)} dicatat untuk ${fmtDate(str(fd.get("date")) ?? todayStr())}.` };
 });
 
 export const deleteExpenseAction = safeAction(async (fd) => {
@@ -41,7 +41,7 @@ export const addIncomeAction = safeAction(async (fd) => {
   if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
   await db.insert(schema.incomes).values({ date, amount, method, category: str(fd.get("category")) ?? "Sewa", note: str(fd.get("note")) });
   revalidatePath("/", "layout");
-  return { ok: "Pemasukan dicatat." };
+  return { ok: `Pemasukan ${rupiah(amount)} dicatat untuk ${fmtDate(date)}.` };
 });
 
 export const deleteIncomeAction = safeAction(async (fd) => {
