@@ -14,12 +14,12 @@ type Access = "public" | "private";
 let blobAccess: Access | undefined =
   process.env.BLOB_ACCESS === "public" || process.env.BLOB_ACCESS === "private" ? process.env.BLOB_ACCESS : undefined;
 
-async function putBlob(pathname: string, file: File) {
+async function putBlob(pathname: string, file: File, contentType: string) {
   const order: Access[] = blobAccess ? [blobAccess] : ["private", "public"];
   let lastError: unknown;
   for (const access of order) {
     try {
-      const blob = await put(pathname, file, { access, contentType: file.type });
+      const blob = await put(pathname, file, { access, contentType });
       blobAccess = access;
       return access === "public" ? blob.url : PRIVATE_PREFIX + blob.pathname;
     } catch (e) {
@@ -48,12 +48,25 @@ const MAX_BYTES = 8 * 1024 * 1024;
 /** Simpan file unggahan; mengembalikan URL yang bisa dipakai di <img>/<a>. */
 export async function saveUpload(file: FormDataEntryValue | null, folder: "produk" | "bukti" | "toko" | "fitting" | "tabungan") {
   if (!file || typeof file === "string" || file.size === 0) return null;
-  const ext = ALLOWED[file.type];
-  if (!ext) throw new Error("Format file harus JPG, PNG, WEBP, GIF, atau PDF.");
+  // Beberapa HP mengirim file tanpa tipe; tebak dari nama file.
+  const byName = Object.entries(ALLOWED).find(([, e]) => file.name.toLowerCase().endsWith(e) || (e === ".jpg" && /\.jpe?g$/i.test(file.name)));
+  const type = ALLOWED[file.type] ? file.type : byName?.[0];
+  const ext = type ? ALLOWED[type] : undefined;
+  if (!ext || !type) {
+    if (/heic|heif/i.test(file.type + file.name)) {
+      throw new Error("Foto HEIC belum bisa dibaca. Coba pilih foto lewat Chrome/Safari terbaru, atau ubah kamera HP ke format JPG (iPhone: Pengaturan → Kamera → Format → Paling Kompatibel).");
+    }
+    throw new Error("Format file harus JPG, PNG, WEBP, GIF, atau PDF.");
+  }
   if (file.size > MAX_BYTES) throw new Error("Ukuran file maksimal 8 MB.");
   const name = `${crypto.randomUUID()}${ext}`;
   if (useBlob) {
-    return putBlob(`${folder}/${name}`, file);
+    try {
+      return await putBlob(`${folder}/${name}`, file, type);
+    } catch (e) {
+      console.error("Blob upload gagal", e);
+      throw new Error("Foto gagal disimpan ke penyimpanan. Coba lagi; kalau tetap gagal, kirim screenshot pesan ini.");
+    }
   }
   if (process.env.VERCEL) {
     throw new Error("Penyimpanan foto belum aktif. Di Vercel buka Storage, buat Blob, sambungkan ke proyek ini, lalu Redeploy.");

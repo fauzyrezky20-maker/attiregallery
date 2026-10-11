@@ -4,18 +4,47 @@ import { useEffect } from "react";
 
 const MAX_SIDE = 1600;
 const MIN_BYTES = 700 * 1024;
+/** Batas aman di bawah limit request Vercel (4,5 MB). */
+const SAFE_BYTES = 3.5 * 1024 * 1024;
+const WEB_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-async function shrink(file: File): Promise<File> {
-  if (!file.type.startsWith("image/") || file.type === "image/gif" || file.size < MIN_BYTES) return file;
+async function decode(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
   try {
-    const bitmap = await createImageBitmap(file);
-    const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
-    if (!blob || blob.size >= file.size) return file;
+    return await createImageBitmap(file);
+  } catch {
+    // Cadangan untuk browser yang tidak bisa createImageBitmap (mis. HEIC di Safari lama).
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      return Object.assign(img, { width: img.naturalWidth, height: img.naturalHeight });
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
+}
+
+async function toJpeg(src: CanvasImageSource & { width: number; height: number }, maxSide: number, quality: number) {
+  const scale = Math.min(1, maxSide / Math.max(src.width, src.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(src.width * scale);
+  canvas.height = Math.round(src.height * scale);
+  canvas.getContext("2d")!.drawImage(src, 0, 0, canvas.width, canvas.height);
+  return new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", quality));
+}
+
+/** Kecilkan foto & ubah format yang tidak umum (HEIC dari iPhone/Android, dll.) menjadi JPG. */
+async function shrink(file: File): Promise<File> {
+  const isImage = file.type.startsWith("image/") || (!file.type && /\.(heic|heif|jpe?g|png|webp|avif)$/i.test(file.name));
+  if (!isImage || file.type === "image/gif") return file;
+  const needsConvert = !WEB_TYPES.includes(file.type);
+  if (!needsConvert && file.size < MIN_BYTES) return file;
+  try {
+    const src = await decode(file);
+    let blob = await toJpeg(src, MAX_SIDE, 0.85);
+    if (blob && blob.size > SAFE_BYTES) blob = await toJpeg(src, 1200, 0.75);
+    if (!blob || (!needsConvert && blob.size >= file.size)) return file;
     return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
   } catch {
     return file;

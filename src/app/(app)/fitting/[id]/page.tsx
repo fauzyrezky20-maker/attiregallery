@@ -48,7 +48,7 @@ export default async function FittingDetail({ params }: { params: Promise<{ id: 
           <CardContent>
             <ActionForm action={saveFittingResultAction}>
               <input type="hidden" name="id" value={fit.id} />
-              <Field label={fit.photoUrl ? "Ganti foto konsumen" : "Foto konsumen"} hint="Bisa langsung dari kamera HP"><Input type="file" name="photo" accept="image/*" capture="environment" /></Field>
+              <Field label={fit.photoUrl ? "Ganti foto konsumen" : "Foto konsumen"} hint="Ambil dari kamera atau pilih dari galeri HP"><Input type="file" name="photo" accept="image/*" /></Field>
               <p className="text-sm font-medium">Keterangan resize (cm){last && <span className="font-normal text-muted-foreground"> · terisi dari ukuran terakhir {fmtDateTime(last.measuredAt)}</span>}</p>
               {SIZE_GROUPS.map((g) => (
                   <fieldset key={g.title} className="grid gap-2">
