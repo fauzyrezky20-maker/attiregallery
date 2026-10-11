@@ -133,7 +133,7 @@ export default async function OrderDetailPage({ params, searchParams }: { params
                     <Field label="Metode">
                       <Select name="method" defaultValue="tunai">
                         {settings.cashEnabled && <option value="tunai">Tunai</option>}
-                        {settings.qrisEnabled && settings.qrisPayload && <option value="qris">QRIS</option>}
+                        {settings.qrisEnabled && (settings.qrisPayload || settings.qrisImageUrl) && <option value="qris">QRIS</option>}
                         {settings.transferEnabled && <option value="transfer">Transfer bank</option>}
                       </Select>
                     </Field>

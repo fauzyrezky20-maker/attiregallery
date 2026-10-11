@@ -24,7 +24,11 @@ export default async function QrisPage({ params }: { params: Promise<{ id: strin
 
   let qr: string | null = null;
   let error: string | null = null;
-  if (!s.qrisPayload) error = "Kode QRIS toko belum diatur. Isi di Pengaturan Toko → Metode Pembayaran.";
+  let manualAmount = false;
+  if (!s.qrisPayload) {
+    if (s.qrisImageUrl) { qr = s.qrisImageUrl; manualAmount = true; }
+    else error = "QRIS toko belum diatur. Unggah foto QRIS di Pengaturan Toko → Metode Pembayaran.";
+  }
   else {
     try {
       qr = await QRCode.toDataURL(makeDynamicQris(s.qrisPayload, payment.amount), { width: 720, margin: 2, errorCorrectionLevel: "M" });
@@ -46,7 +50,11 @@ export default async function QrisPage({ params }: { params: Promise<{ id: strin
           ) : (
             <p className="text-sm text-destructive">{error}</p>
           )}
-          <p className="text-sm text-muted-foreground">Minta pelanggan memindai dengan aplikasi bank atau e-wallet. Nominal sudah terisi otomatis.</p>
+          <p className="text-sm text-muted-foreground">
+            {manualAmount
+              ? <>Minta pelanggan memindai, lalu <b>mengetik nominal {rupiah(payment.amount)}</b> di aplikasinya.</>
+              : "Minta pelanggan memindai dengan aplikasi bank atau e-wallet. Nominal sudah terisi otomatis."}
+          </p>
         </CardContent>
       </Card>
       {payment.status === "pending" ? (

@@ -1,0 +1,1 @@
+ALTER TABLE `store_settings` ADD `qris_image_url` text;

@@ -46,7 +46,7 @@ export default async function KasirPage({ searchParams }: { searchParams: Promis
         dpAmount={settings.dpAmount}
         settleDaysBefore={settings.settleDaysBefore}
         pickup={{ from: settings.pickupFrom, until: settings.pickupUntil }}
-        methods={{ tunai: settings.cashEnabled, qris: settings.qrisEnabled && !!settings.qrisPayload, transfer: settings.transferEnabled }}
+        methods={{ tunai: settings.cashEnabled, qris: settings.qrisEnabled && !!(settings.qrisPayload || settings.qrisImageUrl), transfer: settings.transferEnabled }}
         transferInfo={settings.transferInfo}
       />
     </>

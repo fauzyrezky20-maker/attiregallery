@@ -7,6 +7,7 @@ import { Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { MENUS } from "@/lib/permissions";
+import { QrisInput } from "./qris-input";
 import { resetDataAction, saveGuideAction, saveSavingsAction, savePaymentAction, savePermissionsAction, saveProfileAction, saveRulesAction, saveNotifAction, saveTermsAction } from "./actions";
 
 const Check = ({ name, label, checked }: { name: string; label: string; checked: boolean }) => (
@@ -79,9 +80,7 @@ export default async function PengaturanPage() {
             <ActionForm action={savePaymentAction}>
               <Check name="cashEnabled" label="Tunai" checked={s.cashEnabled} />
               <Check name="qrisEnabled" label="QRIS" checked={s.qrisEnabled} />
-              <Field label="Kode QRIS toko" hint="Pindai QRIS statis toko dengan aplikasi pemindai QR, lalu tempel teksnya di sini. Aplikasi otomatis membuat QRIS dengan nominal tagihan.">
-                <Textarea name="qrisPayload" rows={3} defaultValue={s.qrisPayload ?? ""} className="font-mono text-xs" placeholder="00020101021126…6304ABCD" />
-              </Field>
+              <QrisInput payload={s.qrisPayload} imageUrl={s.qrisImageUrl} />
               <Check name="transferEnabled" label="Transfer bank" checked={s.transferEnabled} />
               <Field label="Info rekening transfer"><Textarea name="transferInfo" rows={3} defaultValue={s.transferInfo ?? ""} placeholder={"BCA 1234567890\na.n. AttireGallery"} /></Field>
               <SubmitButton>Simpan metode</SubmitButton>

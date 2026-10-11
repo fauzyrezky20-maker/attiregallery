@@ -29,6 +29,13 @@
       "when": 1791601844702,
       "tag": "0003_resize_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1791735255428,
+      "tag": "0004_qris_image",
+      "breakpoints": true
     }
   ]
 }

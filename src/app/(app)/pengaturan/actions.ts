@@ -62,10 +62,12 @@ export const saveSavingsAction = safeAction(async (fd) => {
 export const savePaymentAction = safeAction(async (fd) => {
   const qrisPayload = str(fd.get("qrisPayload"))?.replace(/\s+/g, "") ?? null;
   if (qrisPayload && !isValidQris(qrisPayload)) throw new BizError("Kode QRIS tidak valid. Salin teks QRIS lengkap (diawali 000201 dan diakhiri kode CRC 4 karakter).");
+  const qrisImageUrl = await saveUpload(fd.get("qrisImage"), "toko");
   await save({
     cashEnabled: fd.get("cashEnabled") === "on",
     qrisEnabled: fd.get("qrisEnabled") === "on",
     qrisPayload,
+    ...(qrisImageUrl ? { qrisImageUrl } : fd.get("removeQrisImage") === "on" ? { qrisImageUrl: null } : {}),
     transferEnabled: fd.get("transferEnabled") === "on",
     transferInfo: str(fd.get("transferInfo")),
   });

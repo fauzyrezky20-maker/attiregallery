@@ -321,6 +321,7 @@ export const storeSettings = sqliteTable("store_settings", {
   qrisEnabled: integer("qris_enabled", { mode: "boolean" }).notNull().default(true),
   /** String QRIS statis dari bank/penyedia; aplikasi menyisipkan nominal agar jadi QRIS dinamis. */
   qrisPayload: text("qris_payload"),
+  qrisImageUrl: text("qris_image_url"),
   transferEnabled: integer("transfer_enabled", { mode: "boolean" }).notNull().default(true),
   transferInfo: text("transfer_info"),
   cashEnabled: integer("cash_enabled", { mode: "boolean" }).notNull().default(true),
