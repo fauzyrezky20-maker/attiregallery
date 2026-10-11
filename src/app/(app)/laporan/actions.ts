@@ -9,11 +9,14 @@ import { BizError } from "@/lib/orders";
 import { str, toInt, todayStr } from "@/lib/utils";
 import { parseDate, parseFinanceCsv } from "@/lib/finance-import";
 
+const MAX_AMOUNT = 100_000_000;
+
 export const addExpenseAction = safeAction(async (fd) => {
   await requireUser("laporan");
   const category = str(fd.get("category"));
   const amount = toInt(fd.get("amount"));
   if (!category || amount <= 0) throw new BizError("Isi jenis dan nominal pengeluaran.");
+  if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
   await db.insert(schema.expenses).values({ category, amount, note: str(fd.get("note")), date: str(fd.get("date")) ?? todayStr() });
   revalidatePath("/", "layout");
   return { ok: "Pengeluaran dicatat." };
@@ -35,6 +38,7 @@ export const addIncomeAction = safeAction(async (fd) => {
   const m = String(fd.get("method"));
   const method = (METHODS as readonly string[]).includes(m) ? (m as (typeof METHODS)[number]) : "tunai";
   if (amount <= 0) throw new BizError("Isi nominal pemasukan.");
+  if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
   await db.insert(schema.incomes).values({ date, amount, method, category: str(fd.get("category")) ?? "Sewa", note: str(fd.get("note")) });
   revalidatePath("/", "layout");
   return { ok: "Pemasukan dicatat." };

@@ -100,7 +100,7 @@ export default async function TabunganPage({ searchParams }: { searchParams: Pro
             ) : <p className="text-xs text-muted-foreground">Isi rekening tabungan & tautan m-banking di Pengaturan Toko agar tombol setor muncul di sini.</p>}
             <ActionForm action={addSavingAction} resetOnSuccess>
               <Field label="Tanggal"><Input type="date" name="date" defaultValue={today} required /></Field>
-              <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} step={1} required /></Field>
+              <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} max={100000000} step={1} required /></Field>
               <Field label="Rekening tujuan"><Input name="account" defaultValue={settings.savingsAccount?.split("\n")[0] ?? ""} placeholder="Mis. BRI 1234…" /></Field>
               <Field label="Keterangan"><Input name="note" placeholder="Mis. tabungan bulan Oktober" /></Field>
               <Field label="Bukti transfer (opsional)"><Input type="file" name="proof" accept="image/*,application/pdf" /></Field>

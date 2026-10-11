@@ -100,6 +100,7 @@ export function parseFinanceCsv(text: string) {
     const kind = /luar|biaya|expense|^out/.test(kindText) ? "keluar" : /masuk|income|pendapatan|^in$/.test(kindText) ? "masuk" : null;
     if (!date) { errors.push(`Baris ${line}: tanggal "${r[iDate] ?? ""}" tidak terbaca.`); continue; }
     if (amount <= 0) { errors.push(`Baris ${line}: nominal kosong.`); continue; }
+    if (amount > 100_000_000) { errors.push(`Baris ${line}: nominal lebih dari Rp 100.000.000.`); continue; }
     if (!kind) { errors.push(`Baris ${line}: jenis harus "Pemasukan" atau "Pengeluaran".`); continue; }
     const category = (iCat >= 0 && r[iCat]) || (kind === "masuk" ? "Sewa" : "Lain-lain");
     const note = (iNote >= 0 && r[iNote]) || null;
