@@ -86,6 +86,9 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
                   <IncomeCategory general={INCOME_CATS} products={productList} />
                 </Field>
                 <Field label="Nominal (Rp)"><Input name="amount" type="number" min={1} max={100000000} step={1} required /></Field>
+                <Field label="Diskon (%)" hint="Opsional. Nominal di laporan = harga dikurangi diskon.">
+                  <Input name="discountPct" type="number" min={0} max={100} step="any" inputMode="decimal" placeholder="0" />
+                </Field>
                 <Field label="Metode">
                   <Select name="method" defaultValue="tunai"><option value="tunai">Tunai</option><option value="qris">QRIS</option><option value="transfer">Transfer</option></Select>
                 </Field>

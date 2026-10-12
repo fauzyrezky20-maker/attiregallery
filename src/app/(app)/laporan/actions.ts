@@ -39,9 +39,15 @@ export const addIncomeAction = safeAction(async (fd) => {
   const method = (METHODS as readonly string[]).includes(m) ? (m as (typeof METHODS)[number]) : "tunai";
   if (amount <= 0) throw new BizError("Isi nominal pemasukan.");
   if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
-  await db.insert(schema.incomes).values({ date, amount, method, category: str(fd.get("category")) ?? "Sewa", note: str(fd.get("note")) });
+  const discountPct = Math.min(100, Math.max(0, Number(String(fd.get("discountPct") ?? "").replace(",", ".")) || 0));
+  const net = Math.round(amount * (1 - discountPct / 100));
+  await db.insert(schema.incomes).values({
+    date, amount: net, grossAmount: discountPct ? amount : null, discountPct, method,
+    category: str(fd.get("category")) ?? "Sewa", note: str(fd.get("note")),
+  });
   revalidatePath("/", "layout");
-  return { ok: `Pemasukan ${rupiah(amount)} dicatat untuk ${fmtDate(date)}.` };
+  const disc = discountPct ? ` (harga ${rupiah(amount)}, diskon ${discountPct.toLocaleString("id-ID")}%)` : "";
+  return { ok: `Pemasukan ${rupiah(net)}${disc} dicatat untuk ${fmtDate(date)}.` };
 });
 
 export const deleteIncomeAction = safeAction(async (fd) => {
@@ -74,7 +80,10 @@ export const importFinanceAction = safeAction(async (fd) => {
       if (r.kind === "masuk") {
         if (seenIn.has(k)) { skipped++; continue; }
         seenIn.add(k);
-        await tx.insert(schema.incomes).values({ date: r.date, amount: r.amount, method: r.method, category: r.category, note: r.note }).run();
+        await tx.insert(schema.incomes).values({
+          date: r.date, amount: Math.round(r.amount * (1 - r.discountPct / 100)), grossAmount: r.discountPct ? r.amount : null,
+          discountPct: r.discountPct, method: r.method, category: r.category, note: r.note,
+        }).run();
         nIn++;
       } else {
         if (seenOut.has(k)) { skipped++; continue; }

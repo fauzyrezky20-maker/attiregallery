@@ -106,12 +106,14 @@ export function ManualIncomeTable({ r, actions }: { r: R; actions?: (id: string)
       <CardContent>
         {r.manualRows.length === 0 ? <Empty>Belum ada. Pakai form &quot;Catat pemasukan&quot; atau impor CSV untuk data lama.</Empty> : (
           <Table>
-            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Nama pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">%</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Nama pelanggan</TH><TH>Metode</TH><TH className="text-right">Diskon</TH><TH className="text-right">Nominal</TH><TH className="text-right">%</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.manualRows.map((x) => (
                 <TR key={x.id}>
                   <TD className="whitespace-nowrap">{fmtDate(x.date)}</TD><TD>{x.category}</TD><TD className="text-muted-foreground">{x.note}</TD>
-                  <TD>{METHOD_LABEL[x.method]}</TD><TD className="text-right">{rupiah(x.amount)}</TD>
+                  <TD>{METHOD_LABEL[x.method]}</TD>
+                  <TD className="text-right text-xs">{x.discountPct ? <>{x.discountPct.toLocaleString("id-ID")}%<div className="text-muted-foreground">dari {rupiah(x.grossAmount ?? 0)}</div></> : "-"}</TD>
+                  <TD className="text-right">{rupiah(x.amount)}</TD>
                   <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>
                   {actions && <TD className="text-right">{actions(x.id)}</TD>}
                 </TR>

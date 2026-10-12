@@ -1,10 +1,10 @@
 import type { PaymentMethod } from "@/db/schema";
 
 export type ImportRow =
-  | { kind: "masuk"; date: string; amount: number; category: string; note: string | null; method: PaymentMethod }
+  | { kind: "masuk"; date: string; amount: number; category: string; note: string | null; method: PaymentMethod; discountPct: number }
   | { kind: "keluar"; date: string; amount: number; category: string; note: string | null };
 
-export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Nama pelanggan/Keterangan", "Nominal", "Metode"];
+export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Nama pelanggan/Keterangan", "Nominal", "Metode", "Diskon %"];
 
 /** Pecah teks CSV (pemisah ; atau , atau tab, mendukung tanda kutip). */
 function parseCsv(text: string) {
@@ -80,7 +80,7 @@ export function parseFinanceCsv(text: string) {
   const head = rows[0].map((h) => h.toLowerCase());
   const col = (...names: string[]) => head.findIndex((h) => names.some((n) => h.startsWith(n)));
   let iDate = col("tanggal", "tgl", "date"), iKind = col("jenis", "tipe", "type"), iCat = col("kategori", "category"),
-    iNote = col("keterangan", "catatan", "note", "uraian", "nama", "pelanggan"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara");
+    iNote = col("keterangan", "catatan", "note", "uraian", "nama", "pelanggan"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara"), iDisc = col("diskon", "potongan", "discount");
   let start = 1;
   // Tentukan urutan tanggal dari isi file: jika ada 9/15/2026 → bulan dulu (format Excel Inggris).
   const dateCells = rows.map((x) => x[iDate < 0 ? 0 : iDate] ?? "");
@@ -88,7 +88,7 @@ export function parseFinanceCsv(text: string) {
   const monthFirst = pairs.some((x) => +x[2] > 12) && !pairs.some((x) => +x[1] > 12);
   if (iDate < 0 || iAmt < 0) {
     // Tanpa baris judul: anggap urutan sesuai template.
-    [iDate, iKind, iCat, iNote, iAmt, iMet] = [0, 1, 2, 3, 4, 5];
+    [iDate, iKind, iCat, iNote, iAmt, iMet, iDisc] = [0, 1, 2, 3, 4, 5, 6];
     start = 0;
   }
   for (let n = start; n < rows.length; n++) {
@@ -105,7 +105,7 @@ export function parseFinanceCsv(text: string) {
     const category = (iCat >= 0 && r[iCat]) || (kind === "masuk" ? "Sewa" : "Lain-lain");
     const note = (iNote >= 0 && r[iNote]) || null;
     out.push(kind === "masuk"
-      ? { kind, date, amount, category, note, method: parseMethod(iMet >= 0 ? r[iMet] ?? "" : "") }
+      ? { kind, date, amount, category, note, method: parseMethod(iMet >= 0 ? r[iMet] ?? "" : ""), discountPct: iDisc >= 0 ? Math.min(100, Math.max(0, Number((r[iDisc] ?? "").replace("%", "").replace(",", ".").trim()) || 0)) : 0 }
       : { kind, date, amount, category, note });
   }
   return { rows: out, errors };

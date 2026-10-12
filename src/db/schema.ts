@@ -205,6 +205,9 @@ export const incomes = sqliteTable(
     amount: integer("amount").notNull(),
     method: text("method").$type<PaymentMethod>().notNull().default("tunai"),
     category: text("category").notNull().default("Sewa"),
+    /** Harga sebelum diskon; `amount` = setelah diskon (yang dihitung di laporan). */
+    grossAmount: integer("gross_amount"),
+    discountPct: real("discount_pct").notNull().default(0),
     note: text("note"),
     createdAt: createdAt(),
   },

@@ -45,10 +45,10 @@ export async function GET(req: Request) {
   }
   if (r.manualRows.length) {
     autoTable(doc, {
-      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Nominal", "%"]],
-      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, rupiah(x.amount), pct(x.amount, r.income)]),
-      foot: [["", "", "", "Subtotal", rupiah(r.manualTotal), pct(r.manualTotal, r.income)]],
-      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Diskon", "Nominal", "%"]],
+      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, x.discountPct ? `${x.discountPct.toLocaleString("id-ID")}%` : "-", rupiah(x.amount), pct(x.amount, r.income)]),
+      foot: [["", "", "", "", "Subtotal", rupiah(r.manualTotal), pct(r.manualTotal, r.income)]],
+      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } },
     });
   }
 

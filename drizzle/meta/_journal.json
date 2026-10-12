@@ -36,6 +36,13 @@
       "when": 1791735255428,
       "tag": "0004_qris_image",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1791817760711,
+      "tag": "0005_income_discount",
+      "breakpoints": true
     }
   ]
 }
