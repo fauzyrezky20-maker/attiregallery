@@ -22,10 +22,12 @@ const EXPENSE_CATS = ["Laundry & perawatan", "Gaji karyawan", "Sewa tempat", "Li
 export default async function LaporanPage({ searchParams }: { searchParams: Promise<ReportSearch> }) {
   await requireUser("laporan");
   const { period, from, to } = readPeriod(await searchParams);
-  const [r, productList] = await Promise.all([
+  const [r, customerRows, productList] = await Promise.all([
     financeReport(from, to),
+    db.selectDistinct({ name: schema.customers.name }).from(schema.customers).orderBy(asc(schema.customers.name)),
     db.select({ name: schema.products.name, category: schema.products.category, price: schema.products.pricePerDay }).from(schema.products).orderBy(asc(schema.products.category), asc(schema.products.name)),
   ]);
+  const customerNames = customerRows.map((c) => c.name);
   const qs = `dari=${from}&sampai=${to}`;
   // Saat melihat bulan lain (mis. September), tanggal isian otomatis ikut bulan itu.
   const today = todayStr();
@@ -49,7 +51,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
         <CardHeader><CardTitle>Masukkan data keuangan lama (impor CSV)</CardTitle></CardHeader>
         <CardContent className="grid gap-3 text-sm">
           <p className="text-muted-foreground">
-            Isi pemasukan dan pengeluaran sekaligus dari Excel atau Google Sheets. Kolomnya: Tanggal, Jenis (Pemasukan/Pengeluaran), Kategori, Keterangan, Nominal, Metode.
+            Isi pemasukan dan pengeluaran sekaligus dari Excel atau Google Sheets. Kolomnya: Tanggal, Jenis (Pemasukan/Pengeluaran), Kategori, Nama pelanggan/Keterangan, Nominal, Metode.
             Di Excel simpan dengan <b>File → Save As → CSV</b>; di Google Sheets pilih <b>File → Download → CSV</b>. Baris yang sama persis tidak akan dobel.
           </p>
           <a href="/laporan/template" className="w-fit font-medium text-primary hover:underline">Unduh contoh file</a>
@@ -87,7 +89,10 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
                 <Field label="Metode">
                   <Select name="method" defaultValue="tunai"><option value="tunai">Tunai</option><option value="qris">QRIS</option><option value="transfer">Transfer</option></Select>
                 </Field>
-                <Field label="Keterangan"><Input name="note" placeholder="Mis. Sewa Amara - Rina" /></Field>
+                <Field label="Nama pelanggan">
+                  <Input name="note" list="cust-names" placeholder="Ketik atau pilih nama" autoComplete="off" />
+                  <datalist id="cust-names">{customerNames.map((c) => <option key={c} value={c} />)}</datalist>
+                </Field>
                 <SubmitButton>Simpan</SubmitButton>
               </ActionForm>
             </CardContent>

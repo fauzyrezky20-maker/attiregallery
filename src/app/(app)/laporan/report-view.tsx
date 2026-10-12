@@ -3,9 +3,11 @@ import { METHOD_LABEL } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import type { financeReport } from "@/lib/reports";
-import { fmtDate, fmtDateTime, rupiah } from "@/lib/utils";
+import { fmtDate, fmtDateTime, pct, rupiah } from "@/lib/utils";
 
 type R = Awaited<ReturnType<typeof financeReport>>;
+
+const Pct = ({ v, of }: { v: number; of: number }) => <span className="ml-2 inline-block w-14 text-right text-xs text-muted-foreground">{pct(v, of)}</span>;
 
 export function Summary({ r }: { r: R }) {
   return (
@@ -22,7 +24,7 @@ export function IncomeByMethod({ r }: { r: R }) {
       <CardHeader><CardTitle>Pemasukan per metode</CardTitle></CardHeader>
       <CardContent>
         {r.incomeByMethod.length === 0 ? <Empty>Belum ada pemasukan.</Empty> : (
-          <ul className="divide-y text-sm">{r.incomeByMethod.map((m) => <li key={m.method} className="flex justify-between py-2"><span>{METHOD_LABEL[m.method]} <span className="text-muted-foreground">({m.count}×)</span></span><span>{rupiah(m.total)}</span></li>)}</ul>
+          <ul className="divide-y text-sm">{r.incomeByMethod.map((m) => <li key={m.method} className="flex justify-between py-2"><span>{METHOD_LABEL[m.method]} <span className="text-muted-foreground">({m.count}×)</span></span><span>{rupiah(m.total)}<Pct v={m.total} of={r.income} /></span></li>)}</ul>
         )}
       </CardContent>
     </Card>
@@ -35,7 +37,7 @@ export function ExpenseByCategory({ r }: { r: R }) {
       <CardHeader><CardTitle>Pengeluaran per jenis</CardTitle></CardHeader>
       <CardContent>
         {r.expenseByCategory.length === 0 ? <Empty>Belum ada pengeluaran.</Empty> : (
-          <ul className="divide-y text-sm">{r.expenseByCategory.map(([c, t]) => <li key={c} className="flex justify-between py-2"><span>{c}</span><span>{rupiah(t)}</span></li>)}</ul>
+          <ul className="divide-y text-sm">{r.expenseByCategory.map(([c, t]) => <li key={c} className="flex justify-between py-2"><span>{c}</span><span>{rupiah(t)}<Pct v={t} of={r.expense} /></span></li>)}</ul>
         )}
       </CardContent>
     </Card>
@@ -49,11 +51,11 @@ export function ExpenseTable({ r, actions }: { r: R; actions?: (id: string) => R
       <CardContent>
         {r.expenseRows.length === 0 ? <Empty>Belum ada pengeluaran.</Empty> : (
           <Table>
-            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH className="text-right">Nominal</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH className="text-right">Nominal</TH><TH className="text-right">%</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.expenseRows.map((e) => (
                 <TR key={e.id}>
-                  <TD className="whitespace-nowrap">{fmtDate(e.date)}</TD><TD>{e.category}</TD><TD className="text-muted-foreground">{e.note}</TD><TD className="text-right">{rupiah(e.amount)}</TD>
+                  <TD className="whitespace-nowrap">{fmtDate(e.date)}</TD><TD>{e.category}</TD><TD className="text-muted-foreground">{e.note}</TD><TD className="text-right">{rupiah(e.amount)}</TD><TD className="text-right text-xs text-muted-foreground">{pct(e.amount, r.expense)}</TD>
                   {actions && <TD className="text-right">{actions(e.id)}</TD>}
                 </TR>
               ))}
@@ -72,7 +74,7 @@ export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
       <CardContent>
         {r.sales.length === 0 ? <Empty>Tidak ada pemasukan pada periode ini.</Empty> : (
           <Table>
-            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH></TR></THead>
+            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">%</TH></TR></THead>
             <TBody>
               {r.sales.map((x) => (
                 <TR key={x.id}>
@@ -81,6 +83,7 @@ export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
                   <TD>{x.customer}</TD>
                   <TD>{METHOD_LABEL[x.method]}</TD>
                   <TD className="text-right">{rupiah(x.amount)}</TD>
+                  <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>
                 </TR>
               ))}
             </TBody>
@@ -103,12 +106,13 @@ export function ManualIncomeTable({ r, actions }: { r: R; actions?: (id: string)
       <CardContent>
         {r.manualRows.length === 0 ? <Empty>Belum ada. Pakai form &quot;Catat pemasukan&quot; atau impor CSV untuk data lama.</Empty> : (
           <Table>
-            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Nama pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">%</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.manualRows.map((x) => (
                 <TR key={x.id}>
                   <TD className="whitespace-nowrap">{fmtDate(x.date)}</TD><TD>{x.category}</TD><TD className="text-muted-foreground">{x.note}</TD>
                   <TD>{METHOD_LABEL[x.method]}</TD><TD className="text-right">{rupiah(x.amount)}</TD>
+                  <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>
                   {actions && <TD className="text-right">{actions(x.id)}</TD>}
                 </TR>
               ))}

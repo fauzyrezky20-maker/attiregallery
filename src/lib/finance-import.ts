@@ -4,7 +4,7 @@ export type ImportRow =
   | { kind: "masuk"; date: string; amount: number; category: string; note: string | null; method: PaymentMethod }
   | { kind: "keluar"; date: string; amount: number; category: string; note: string | null };
 
-export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Keterangan", "Nominal", "Metode"];
+export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Nama pelanggan/Keterangan", "Nominal", "Metode"];
 
 /** Pecah teks CSV (pemisah ; atau , atau tab, mendukung tanda kutip). */
 function parseCsv(text: string) {
@@ -80,7 +80,7 @@ export function parseFinanceCsv(text: string) {
   const head = rows[0].map((h) => h.toLowerCase());
   const col = (...names: string[]) => head.findIndex((h) => names.some((n) => h.startsWith(n)));
   let iDate = col("tanggal", "tgl", "date"), iKind = col("jenis", "tipe", "type"), iCat = col("kategori", "category"),
-    iNote = col("keterangan", "catatan", "note", "uraian"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara");
+    iNote = col("keterangan", "catatan", "note", "uraian", "nama", "pelanggan"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara");
   let start = 1;
   // Tentukan urutan tanggal dari isi file: jika ada 9/15/2026 → bulan dulu (format Excel Inggris).
   const dateCells = rows.map((x) => x[iDate < 0 ? 0 : iDate] ?? "");

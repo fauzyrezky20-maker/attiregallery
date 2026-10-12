@@ -70,3 +70,9 @@ export function str(v: FormDataEntryValue | null | undefined) {
   const s = v == null ? "" : String(v).trim();
   return s === "" ? null : s;
 }
+
+/** Persentase terhadap total, mis. "12,5%". */
+export function pct(part: number, total: number) {
+  if (!total) return "0%";
+  return `${(Math.round((part / total) * 1000) / 10).toLocaleString("id-ID")}%`;
+}

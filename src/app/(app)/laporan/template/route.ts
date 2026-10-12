@@ -6,8 +6,8 @@ export async function GET() {
   await requireUser("laporan");
   const rows = [
     TEMPLATE_HEADER,
-    ["2026-06-01", "Pemasukan", "Sewa", "Sewa kebaya Amara - Rina", "400000", "Transfer"],
-    ["2026-06-01", "Pemasukan", "Sewa", "DP Serena - Dita", "200000", "Tunai"],
+    ["2026-06-01", "Pemasukan", "Sewa Amara", "Rina", "400000", "Transfer"],
+    ["2026-06-01", "Pemasukan", "DP", "Dita", "200000", "Tunai"],
     ["2026-06-02", "Pengeluaran", "Laundry & perawatan", "Dry clean 3 kebaya", "90000", ""],
     ["2026-06-05", "Pengeluaran", "Promosi", "Iklan Instagram", "150000", ""],
   ];

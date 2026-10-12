@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/session";
 import { financeReport } from "@/lib/reports";
 import { getSettings } from "@/lib/settings";
 import { readPeriod } from "../params";
+import { pct } from "@/lib/utils";
 
 const METHOD: Record<string, string> = { tunai: "Tunai", qris: "QRIS", transfer: "Transfer", tabungan: "Saldo tabungan" };
 
@@ -24,15 +25,15 @@ export async function GET(req: Request) {
   const rows: (string | number | null)[][] = [
     [`Laporan Keuangan ${s.storeName}`], [`Periode`, from, to], [],
     ["PEMASUKAN"], ["Total pemasukan", r.income], [],
-    ["Per metode"], ["Metode", "Jumlah transaksi", "Total"],
-    ...r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, m.count, m.total]), [],
+    ["Per metode"], ["Metode", "Jumlah transaksi", "Total", "%"],
+    ...r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, m.count, m.total, pct(m.total, r.income)]), [],
     ["Daftar pemasukan"], ["Waktu", "No. pesanan", "Pelanggan", "Metode", "Nominal"],
     ...r.sales.map((x) => [ts(x.paidAt), x.orderId.slice(0, 8), x.customer, METHOD[x.method] ?? x.method, x.amount]), [],
-    ["Pemasukan dicatat manual"], ["Tanggal", "Jenis", "Keterangan", "Metode", "Nominal"],
-    ...r.manualRows.map((x) => [x.date, x.category, x.note, METHOD[x.method] ?? x.method, x.amount]), [],
+    ["Pemasukan dicatat manual"], ["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Nominal", "%"],
+    ...r.manualRows.map((x) => [x.date, x.category, x.note, METHOD[x.method] ?? x.method, x.amount, pct(x.amount, r.income)]), [],
     ["PENGELUARAN"], ["Total pengeluaran", r.expense], [],
-    ["Per jenis"], ["Jenis", "Total"],
-    ...r.expenseByCategory.map(([c, t]) => [c, t]), [],
+    ["Per jenis"], ["Jenis", "Total", "%"],
+    ...r.expenseByCategory.map(([c, t]) => [c, t, pct(t, r.expense)]), [],
     ["Daftar pengeluaran"], ["Tanggal", "Jenis", "Keterangan", "Nominal"],
     ...r.expenseRows.map((e) => [e.date, e.category, e.note, e.amount]),
   ];

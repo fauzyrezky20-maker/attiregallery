@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import { requireUser } from "@/lib/session";
 import { financeReport } from "@/lib/reports";
 import { getSettings } from "@/lib/settings";
-import { fmtDate, rupiah } from "@/lib/utils";
+import { fmtDate, pct, rupiah } from "@/lib/utils";
 import { readPeriod } from "../params";
 
 const METHOD: Record<string, string> = { tunai: "Tunai", qris: "QRIS", transfer: "Transfer", tabungan: "Saldo tabungan" };
@@ -31,24 +31,24 @@ export async function GET(req: Request) {
 
   let y = section("PEMASUKAN", r.income, 32);
   autoTable(doc, {
-    startY: y, headStyles: head, head: [["Metode", "Transaksi", "Total"]],
-    body: r.incomeByMethod.length ? r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, String(m.count), rupiah(m.total)]) : [["Belum ada pemasukan", "", ""]],
-    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
+    startY: y, headStyles: head, head: [["Metode", "Transaksi", "Total", "%"]],
+    body: r.incomeByMethod.length ? r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, String(m.count), rupiah(m.total), pct(m.total, r.income)]) : [["Belum ada pemasukan", "", "", ""]],
+    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" }, 3: { halign: "right" } },
   });
   if (r.sales.length) {
   autoTable(doc, {
-      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Metode", "Nominal"]],
-      body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, METHOD[x.method] ?? x.method, rupiah(x.amount)]),
-      foot: [["", "", "", "Subtotal", rupiah(r.salesTotal)]],
-      columnStyles: { 4: { halign: "right" } },
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Metode", "Nominal", "%"]],
+      body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, METHOD[x.method] ?? x.method, rupiah(x.amount), pct(x.amount, r.income)]),
+      foot: [["", "", "", "Subtotal", rupiah(r.salesTotal), pct(r.salesTotal, r.income)]],
+      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
     });
   }
   if (r.manualRows.length) {
     autoTable(doc, {
-      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Metode", "Nominal"]],
-      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, rupiah(x.amount)]),
-      foot: [["", "", "", "Subtotal", rupiah(r.manualTotal)]],
-      columnStyles: { 4: { halign: "right" } },
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Nominal", "%"]],
+      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, rupiah(x.amount), pct(x.amount, r.income)]),
+      foot: [["", "", "", "Subtotal", rupiah(r.manualTotal), pct(r.manualTotal, r.income)]],
+      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
     });
   }
 
@@ -56,15 +56,15 @@ export async function GET(req: Request) {
   if (y > 260) { doc.addPage(); y = 16; }
   y = section("PENGELUARAN", r.expense, y);
   autoTable(doc, {
-    startY: y, headStyles: head, head: [["Jenis", "Total"]],
-    body: r.expenseByCategory.length ? r.expenseByCategory.map(([c, t]) => [c, rupiah(t)]) : [["Belum ada pengeluaran", ""]],
-    columnStyles: { 1: { halign: "right" } },
+    startY: y, headStyles: head, head: [["Jenis", "Total", "%"]],
+    body: r.expenseByCategory.length ? r.expenseByCategory.map(([c, t]) => [c, rupiah(t), pct(t, r.expense)]) : [["Belum ada pengeluaran", "", ""]],
+    columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
   });
   autoTable(doc, {
-    startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Nominal"]],
-    body: r.expenseRows.map((e) => [fmtDate(e.date), e.category, e.note ?? "", rupiah(e.amount)]),
-    foot: [["", "", "Total", rupiah(r.expense)]],
-    columnStyles: { 3: { halign: "right" } },
+    startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Nominal", "%"]],
+    body: r.expenseRows.map((e) => [fmtDate(e.date), e.category, e.note ?? "", rupiah(e.amount), pct(e.amount, r.expense)]),
+    foot: [["", "", "Total", rupiah(r.expense), "100%"]],
+    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" } },
   });
 
   const buf = Buffer.from(doc.output("arraybuffer"));
