@@ -1,10 +1,10 @@
 import type { PaymentMethod } from "@/db/schema";
 
 export type ImportRow =
-  | { kind: "masuk"; date: string; amount: number; category: string; note: string | null; method: PaymentMethod; discountPct: number }
-  | { kind: "keluar"; date: string; amount: number; category: string; note: string | null };
+  | { kind: "masuk"; date: string; amount: number; category: string; note: string | null; method: PaymentMethod; percent: number | null }
+  | { kind: "keluar"; date: string; amount: number; category: string; note: string | null; percent: number | null };
 
-export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Nama pelanggan/Keterangan", "Nominal", "Metode", "Diskon %"];
+export const TEMPLATE_HEADER = ["Tanggal", "Jenis", "Kategori", "Nama pelanggan/Keterangan", "Nominal", "Metode", "Persen %"];
 
 /** Pecah teks CSV (pemisah ; atau , atau tab, mendukung tanda kutip). */
 function parseCsv(text: string) {
@@ -80,7 +80,7 @@ export function parseFinanceCsv(text: string) {
   const head = rows[0].map((h) => h.toLowerCase());
   const col = (...names: string[]) => head.findIndex((h) => names.some((n) => h.startsWith(n)));
   let iDate = col("tanggal", "tgl", "date"), iKind = col("jenis", "tipe", "type"), iCat = col("kategori", "category"),
-    iNote = col("keterangan", "catatan", "note", "uraian", "nama", "pelanggan"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara"), iDisc = col("diskon", "potongan", "discount");
+    iNote = col("keterangan", "catatan", "note", "uraian", "nama", "pelanggan"), iAmt = col("nominal", "jumlah", "amount", "total"), iMet = col("metode", "method", "cara"), iDisc = col("persen", "%", "diskon", "potongan", "discount");
   let start = 1;
   // Tentukan urutan tanggal dari isi file: jika ada 9/15/2026 → bulan dulu (format Excel Inggris).
   const dateCells = rows.map((x) => x[iDate < 0 ? 0 : iDate] ?? "");
@@ -104,9 +104,11 @@ export function parseFinanceCsv(text: string) {
     if (!kind) { errors.push(`Baris ${line}: jenis harus "Pemasukan" atau "Pengeluaran".`); continue; }
     const category = (iCat >= 0 && r[iCat]) || (kind === "masuk" ? "Sewa" : "Lain-lain");
     const note = (iNote >= 0 && r[iNote]) || null;
+    const pRaw = iDisc >= 0 ? (r[iDisc] ?? "").replace("%", "").replace(",", ".").trim() : "";
+    const percent = pRaw && Number.isFinite(+pRaw) ? Math.min(100, Math.max(0, +pRaw)) : null;
     out.push(kind === "masuk"
-      ? { kind, date, amount, category, note, method: parseMethod(iMet >= 0 ? r[iMet] ?? "" : ""), discountPct: iDisc >= 0 ? Math.min(100, Math.max(0, Number((r[iDisc] ?? "").replace("%", "").replace(",", ".").trim()) || 0)) : 0 }
-      : { kind, date, amount, category, note });
+      ? { kind, date, amount, category, note, method: parseMethod(iMet >= 0 ? r[iMet] ?? "" : ""), percent }
+      : { kind, date, amount, category, note, percent });
   }
   return { rows: out, errors };
 }

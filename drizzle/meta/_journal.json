@@ -43,6 +43,13 @@
       "when": 1791817760711,
       "tag": "0005_income_discount",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791818067973,
+      "tag": "0006_expense_percent",
+      "breakpoints": true
     }
   ]
 }

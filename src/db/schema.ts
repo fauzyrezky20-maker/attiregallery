@@ -191,6 +191,7 @@ export const expenses = sqliteTable("expenses", {
   id: id(),
   category: text("category").notNull(),
   amount: integer("amount").notNull(),
+  percent: real("percent"),
   note: text("note"),
   date: text("date").notNull(),
   createdAt: createdAt(),
@@ -205,8 +206,9 @@ export const incomes = sqliteTable(
     amount: integer("amount").notNull(),
     method: text("method").$type<PaymentMethod>().notNull().default("tunai"),
     category: text("category").notNull().default("Sewa"),
-    /** Harga sebelum diskon; `amount` = setelah diskon (yang dihitung di laporan). */
+    /** Dipakai versi lama (diskon); catatan baru tidak mengubah nominal. */
     grossAmount: integer("gross_amount"),
+    /** Isian "Persen (%)" yang dicatat pengguna. */
     discountPct: real("discount_pct").notNull().default(0),
     note: text("note"),
     createdAt: createdAt(),
