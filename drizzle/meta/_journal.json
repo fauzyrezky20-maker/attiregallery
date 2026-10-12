@@ -50,6 +50,13 @@
       "when": 1791818067973,
       "tag": "0006_expense_percent",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1791818274560,
+      "tag": "0007_expense_gross",
+      "breakpoints": true
     }
   ]
 }

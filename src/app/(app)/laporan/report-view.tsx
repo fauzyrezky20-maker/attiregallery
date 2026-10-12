@@ -51,11 +51,11 @@ export function ExpenseTable({ r, actions }: { r: R; actions?: (id: string) => R
       <CardContent>
         {r.expenseRows.length === 0 ? <Empty>Belum ada pengeluaran.</Empty> : (
           <Table>
-            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH className="text-right">Nominal</TH><TH className="text-right">Persen</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Keterangan</TH><TH className="text-right">Nominal</TH><TH className="text-right">Potongan</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.expenseRows.map((e) => (
                 <TR key={e.id}>
-                  <TD className="whitespace-nowrap">{fmtDate(e.date)}</TD><TD>{e.category}</TD><TD className="text-muted-foreground">{e.note}</TD><TD className="text-right">{rupiah(e.amount)}</TD><TD className="text-right">{e.percent != null ? `${e.percent.toLocaleString("id-ID")}%` : "-"}</TD><TD className="text-right text-xs text-muted-foreground">{pct(e.amount, r.expense)}</TD>
+                  <TD className="whitespace-nowrap">{fmtDate(e.date)}</TD><TD>{e.category}</TD><TD className="text-muted-foreground">{e.note}</TD><TD className="text-right">{rupiah(e.amount)}</TD><TD className="text-right text-xs">{e.percent ? <>{e.percent.toLocaleString("id-ID")}%{e.grossAmount ? <div className="text-muted-foreground">dari {rupiah(e.grossAmount)}</div> : null}</> : "-"}</TD><TD className="text-right text-xs text-muted-foreground">{pct(e.amount, r.expense)}</TD>
                   {actions && <TD className="text-right">{actions(e.id)}</TD>}
                 </TR>
               ))}
@@ -106,14 +106,14 @@ export function ManualIncomeTable({ r, actions }: { r: R; actions?: (id: string)
       <CardContent>
         {r.manualRows.length === 0 ? <Empty>Belum ada. Pakai form &quot;Catat pemasukan&quot; atau impor CSV untuk data lama.</Empty> : (
           <Table>
-            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Nama pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Persen</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Tanggal</TH><TH>Jenis</TH><TH>Nama pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Potongan</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.manualRows.map((x) => (
                 <TR key={x.id}>
                   <TD className="whitespace-nowrap">{fmtDate(x.date)}</TD><TD>{x.category}</TD><TD className="text-muted-foreground">{x.note}</TD>
                   <TD>{METHOD_LABEL[x.method]}</TD>
                   <TD className="text-right">{rupiah(x.amount)}</TD>
-                  <TD className="text-right">{x.discountPct ? `${x.discountPct.toLocaleString("id-ID")}%` : "-"}</TD>
+                  <TD className="text-right text-xs">{x.discountPct ? <>{x.discountPct.toLocaleString("id-ID")}%{x.grossAmount ? <div className="text-muted-foreground">dari {rupiah(x.grossAmount)}</div> : null}</> : "-"}</TD>
                   <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>
                   {actions && <TD className="text-right">{actions(x.id)}</TD>}
                 </TR>

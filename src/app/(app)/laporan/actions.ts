@@ -20,15 +20,24 @@ function readPercent(fd: FormData) {
   return n;
 }
 
+/** Terapkan potongan harga: kembalikan nominal setelah potongan + harga awal (bila ada potongan). */
+function applyCut(amount: number, percent: number | null) {
+  if (!percent) return { net: amount, gross: null as number | null, pctText: "" };
+  const net = Math.round(amount * (1 - percent / 100));
+  return { net, gross: amount, pctText: ` (harga ${rupiah(amount)}, potongan ${percent.toLocaleString("id-ID")}%)` };
+}
+
 export const addExpenseAction = safeAction(async (fd) => {
   await requireUser("laporan");
   const category = str(fd.get("category"));
   const amount = toInt(fd.get("amount"));
   if (!category || amount <= 0) throw new BizError("Isi jenis dan nominal pengeluaran.");
   if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
-  await db.insert(schema.expenses).values({ category, amount, percent: readPercent(fd), note: str(fd.get("note")), date: str(fd.get("date")) ?? todayStr() });
+  const percent = readPercent(fd);
+  const c = applyCut(amount, percent);
+  await db.insert(schema.expenses).values({ category, amount: c.net, grossAmount: c.gross, percent, note: str(fd.get("note")), date: str(fd.get("date")) ?? todayStr() });
   revalidatePath("/", "layout");
-  return { ok: `Pengeluaran ${rupiah(amount)} dicatat untuk ${fmtDate(str(fd.get("date")) ?? todayStr())}.` };
+  return { ok: `Pengeluaran ${rupiah(c.net)}${c.pctText} dicatat untuk ${fmtDate(str(fd.get("date")) ?? todayStr())}.` };
 });
 
 export const deleteExpenseAction = safeAction(async (fd) => {
@@ -49,12 +58,13 @@ export const addIncomeAction = safeAction(async (fd) => {
   if (amount <= 0) throw new BizError("Isi nominal pemasukan.");
   if (amount > MAX_AMOUNT) throw new BizError("Nominal maksimal Rp 100.000.000.");
   const percent = readPercent(fd);
+  const c = applyCut(amount, percent);
   await db.insert(schema.incomes).values({
-    date, amount, discountPct: percent ?? 0, method,
+    date, amount: c.net, grossAmount: c.gross, discountPct: percent ?? 0, method,
     category: str(fd.get("category")) ?? "Sewa", note: str(fd.get("note")),
   });
   revalidatePath("/", "layout");
-  return { ok: `Pemasukan ${rupiah(amount)}${percent != null ? ` (${percent.toLocaleString("id-ID")}%)` : ""} dicatat untuk ${fmtDate(date)}.` };
+  return { ok: `Pemasukan ${rupiah(c.net)}${c.pctText} dicatat untuk ${fmtDate(date)}.` };
 });
 
 export const deleteIncomeAction = safeAction(async (fd) => {
@@ -88,13 +98,13 @@ export const importFinanceAction = safeAction(async (fd) => {
         if (seenIn.has(k)) { skipped++; continue; }
         seenIn.add(k);
         await tx.insert(schema.incomes).values({
-          date: r.date, amount: r.amount, discountPct: r.percent ?? 0, method: r.method, category: r.category, note: r.note,
+          date: r.date, amount: applyCut(r.amount, r.percent).net, grossAmount: applyCut(r.amount, r.percent).gross, discountPct: r.percent ?? 0, method: r.method, category: r.category, note: r.note,
         }).run();
         nIn++;
       } else {
         if (seenOut.has(k)) { skipped++; continue; }
         seenOut.add(k);
-        await tx.insert(schema.expenses).values({ date: r.date, amount: r.amount, category: r.category, note: r.note, percent: r.percent }).run();
+        await tx.insert(schema.expenses).values({ date: r.date, amount: applyCut(r.amount, r.percent).net, grossAmount: applyCut(r.amount, r.percent).gross, category: r.category, note: r.note, percent: r.percent }).run();
         nOut++;
       }
     }

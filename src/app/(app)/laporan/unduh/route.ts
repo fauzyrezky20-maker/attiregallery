@@ -29,13 +29,13 @@ export async function GET(req: Request) {
     ...r.incomeByMethod.map((m) => [METHOD[m.method] ?? m.method, m.count, m.total, pct(m.total, r.income)]), [],
     ["Daftar pemasukan"], ["Waktu", "No. pesanan", "Pelanggan", "Metode", "Nominal"],
     ...r.sales.map((x) => [ts(x.paidAt), x.orderId.slice(0, 8), x.customer, METHOD[x.method] ?? x.method, x.amount]), [],
-    ["Pemasukan dicatat manual"], ["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Nominal", "Persen %", "Porsi dari total"],
-    ...r.manualRows.map((x) => [x.date, x.category, x.note, METHOD[x.method] ?? x.method, x.amount, x.discountPct || "", pct(x.amount, r.income)]), [],
+    ["Pemasukan dicatat manual"], ["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Harga", "Potongan %", "Nominal setelah potongan", "Porsi dari total"],
+    ...r.manualRows.map((x) => [x.date, x.category, x.note, METHOD[x.method] ?? x.method, x.grossAmount ?? x.amount, x.discountPct || "", x.amount, pct(x.amount, r.income)]), [],
     ["PENGELUARAN"], ["Total pengeluaran", r.expense], [],
     ["Per jenis"], ["Jenis", "Total", "%"],
     ...r.expenseByCategory.map(([c, t]) => [c, t, pct(t, r.expense)]), [],
-    ["Daftar pengeluaran"], ["Tanggal", "Jenis", "Keterangan", "Nominal", "Persen %", "Porsi dari total"],
-    ...r.expenseRows.map((e) => [e.date, e.category, e.note, e.amount, e.percent ?? "", pct(e.amount, r.expense)]),
+    ["Daftar pengeluaran"], ["Tanggal", "Jenis", "Keterangan", "Harga", "Potongan %", "Nominal setelah potongan", "Porsi dari total"],
+    ...r.expenseRows.map((e) => [e.date, e.category, e.note, e.grossAmount ?? e.amount, e.percent ?? "", e.amount, pct(e.amount, r.expense)]),
   ];
   return new Response("﻿" + csv(rows), {
     headers: {

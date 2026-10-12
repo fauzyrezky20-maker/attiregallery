@@ -45,10 +45,10 @@ export async function GET(req: Request) {
   }
   if (r.manualRows.length) {
     autoTable(doc, {
-      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Persen", "Nominal", "Porsi"]],
-      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, x.discountPct ? `${x.discountPct.toLocaleString("id-ID")}%` : "-", rupiah(x.amount), pct(x.amount, r.income)]),
-      foot: [["", "", "", "", "Subtotal", rupiah(r.manualTotal), pct(r.manualTotal, r.income)]],
-      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } },
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Nama pelanggan", "Metode", "Harga", "Potongan", "Nominal", "Porsi"]],
+      body: r.manualRows.map((x) => [fmtDate(x.date), x.category, x.note ?? "", METHOD[x.method] ?? x.method, rupiah(x.grossAmount ?? x.amount), x.discountPct ? `${x.discountPct.toLocaleString("id-ID")}%` : "-", rupiah(x.amount), pct(x.amount, r.income)]),
+      foot: [["", "", "", "", "", "Subtotal", rupiah(r.manualTotal), pct(r.manualTotal, r.income)]],
+      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" }, 7: { halign: "right" } },
     });
   }
 
@@ -61,10 +61,10 @@ export async function GET(req: Request) {
     columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
   });
   autoTable(doc, {
-    startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Persen", "Nominal", "Porsi"]],
-    body: r.expenseRows.map((e) => [fmtDate(e.date), e.category, e.note ?? "", e.percent != null ? `${e.percent.toLocaleString("id-ID")}%` : "-", rupiah(e.amount), pct(e.amount, r.expense)]),
-    foot: [["", "", "", "Total", rupiah(r.expense), "100%"]],
-    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" } },
+    startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Tanggal", "Jenis", "Keterangan", "Harga", "Potongan", "Nominal", "Porsi"]],
+    body: r.expenseRows.map((e) => [fmtDate(e.date), e.category, e.note ?? "", rupiah(e.grossAmount ?? e.amount), e.percent ? `${e.percent.toLocaleString("id-ID")}%` : "-", rupiah(e.amount), pct(e.amount, r.expense)]),
+    foot: [["", "", "", "", "Total", rupiah(r.expense), "100%"]],
+    columnStyles: { 3: { halign: "right" }, 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } },
   });
 
   const buf = Buffer.from(doc.output("arraybuffer"));
