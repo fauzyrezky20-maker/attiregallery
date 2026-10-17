@@ -59,7 +59,7 @@ export default async function FittingPage({ searchParams }: { searchParams: Prom
                         </div>
                         <div className="flex items-center gap-2">
                           <StatusBadge status={r.status} />
-                          <Button asChild size="sm" variant="secondary"><Link href={`/fitting/${r.id}`}>Foto & ukuran</Link></Button>
+                          <Button asChild size="sm" variant="secondary"><Link href={`/fitting/${r.id}`}>{r.photoUrl ? "Foto & ukuran" : "+ Foto konsumen"}</Link></Button>
                           {r.status === "terjadwal" && (
                             <>
                               <ActionForm action={setFittingStatusAction}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="batal" /><SubmitButton size="sm" variant="ghost">Batal</SubmitButton></ActionForm>
@@ -80,7 +80,13 @@ export default async function FittingPage({ searchParams }: { searchParams: Prom
                 <ul className="divide-y text-sm">
                   {past.map((r) => (
                     <li key={r.id} className="flex items-center justify-between gap-2 py-2">
-                      <span>{fmtDateTime(r.at)} · <Link href={`/pelanggan/${r.customerId}`} className="hover:underline">{r.customer}</Link> · <Link href={`/fitting/${r.id}`} className="text-primary hover:underline">{r.photoUrl ? "Lihat foto & ukuran" : "Catat foto & ukuran"}</Link></span>
+                      <span className="flex items-center gap-2">
+                        {r.photoUrl && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.photoUrl} alt="" className="size-9 shrink-0 rounded object-cover" />
+                        )}
+                        <span>{fmtDateTime(r.at)} · <Link href={`/pelanggan/${r.customerId}`} className="hover:underline">{r.customer}</Link> · <Link href={`/fitting/${r.id}`} className="text-primary hover:underline">{r.photoUrl ? "Lihat foto & ukuran" : "Catat foto & ukuran"}</Link></span>
+                      </span>
                       <span className="flex items-center gap-2">
                         <StatusBadge status={r.status} />
                         {r.status === "terjadwal" && <ActionForm action={setFittingStatusAction}><input type="hidden" name="id" value={r.id} /><input type="hidden" name="status" value="selesai" /><SubmitButton size="sm" variant="ghost">Tandai selesai</SubmitButton></ActionForm>}
@@ -105,6 +111,7 @@ export default async function FittingPage({ searchParams }: { searchParams: Prom
               {sp.pesanan && <input type="hidden" name="orderId" value={sp.pesanan} />}
               <Field label="Tanggal & jam"><Input type="datetime-local" name="scheduledAt" required /></Field>
               <Field label="Keterangan fitting"><Textarea name="notes" rows={2} placeholder="Mis. bawa sepatu hak untuk ukur panjang" /></Field>
+              <Field label="Foto konsumen" hint="Opsional. Ambil dari kamera atau pilih dari galeri HP; bisa juga ditambah nanti."><Input type="file" name="photo" accept="image/*" /></Field>
               <SubmitButton>Simpan jadwal</SubmitButton>
               <p className="text-xs text-muted-foreground">Pelanggan baru? Tambahkan dulu di menu <Link href="/pelanggan" className="underline">Pelanggan</Link>.</p>
             </ActionForm>

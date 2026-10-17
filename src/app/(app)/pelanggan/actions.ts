@@ -42,14 +42,16 @@ export const saveFittingAction = safeAction(async (fd) => {
   const customerId = str(fd.get("customerId"));
   const at = str(fd.get("scheduledAt"));
   if (!customerId || !at) throw new BizError("Pilih pelanggan dan tanggal/jam fitting.");
+  const photoUrl = await saveUpload(fd.get("photo"), "fitting");
   await db.insert(schema.fittingSchedules).values({
     customerId,
     orderId: str(fd.get("orderId")),
     scheduledAt: parseLocalDateTime(at),
     notes: str(fd.get("notes")),
+    photoUrl,
   });
   revalidatePath("/", "layout");
-  return { ok: "Jadwal fitting tersimpan." };
+  return { ok: photoUrl ? "Jadwal fitting dan foto konsumen tersimpan." : "Jadwal fitting tersimpan." };
 });
 
 /** Hasil fitting: foto konsumen + ukuran badan, sekaligus tandai fitting selesai. */
