@@ -10,7 +10,7 @@ export default async function ProdukBaru() {
   const cats = await db.selectDistinct({ c: schema.products.category }).from(schema.products).orderBy(asc(schema.products.category));
   return (
     <>
-      <PageHeader title="Tambah kebaya" back="/produk" />
+      <PageHeader title="Tambah produk" back="/produk" />
       <Card className="max-w-xl"><CardContent className="pt-5 md:pt-5"><ProductForm product={null} categories={cats.map((c) => c.c).filter((c): c is string => !!c)} /></CardContent></Card>
     </>
   );

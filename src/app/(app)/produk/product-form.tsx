@@ -21,7 +21,7 @@ export function ProductForm({ product, categories }: { product: P; categories: s
       <Field label={product ? "Tambah foto" : "Foto"} hint="Bisa pilih beberapa foto sekaligus (JPG/PNG/WEBP, maks 8 MB)">
         <Input name="photos" type="file" accept="image/*" multiple />
       </Field>
-      <SubmitButton>{product ? "Simpan perubahan" : "Tambah kebaya"}</SubmitButton>
+      <SubmitButton>{product ? "Simpan perubahan" : "Tambah produk"}</SubmitButton>
     </ActionForm>
   );
 }

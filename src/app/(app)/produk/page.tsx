@@ -39,7 +39,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
       <PageHeader
         title="Produk & Foto"
         description={`${rows.length} model · ${totals.avail} dari ${totals.units} unit ada di toko`}
-        actions={<Button asChild><Link href="/produk/baru"><Plus /> Tambah kebaya</Link></Button>}
+        actions={<Button asChild><Link href="/produk/baru"><Plus /> Tambah produk</Link></Button>}
       />
       {missing > 0 && (
         <Card className="mb-4 p-4">
