@@ -85,6 +85,13 @@
       "when": 1792504575326,
       "tag": "0011_finance_edits",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1792505227627,
+      "tag": "0012_payment_category",
+      "breakpoints": true
     }
   ]
 }

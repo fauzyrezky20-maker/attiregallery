@@ -234,13 +234,15 @@ export const editPaymentAction = safeAction(async (fd) => {
   if (Number(others?.t ?? 0) + amount > order.totalAmount) {
     throw new BizError(`Total pembayaran pesanan ini jadi melebihi tagihan ${rupiah(order.totalAmount)}.`);
   }
+  const category = str(fd.get("category"));
   const changes = diff([
+    ["Jenis", old.category ?? "Sewa", category ?? "Sewa"],
     ["Waktu", old.paidAt ? fmtDateTime(old.paidAt) : "", fmtDateTime(paidAt)],
     ["Metode", METHOD_LABEL[old.method], METHOD_LABEL[method]],
     ["Nominal", rupiah(old.amount), rupiah(amount)],
   ]);
   if (!changes) return { ok: "Tidak ada yang berubah." };
-  await db.update(payments).set({ paidAt, method, amount }).where(eq(payments.id, id));
+  await db.update(payments).set({ paidAt, method, amount, category }).where(eq(payments.id, id));
   await logEdit("pembayaran", id, "ubah", user.name, `Pesanan #${old.orderId.slice(0, 8)} · ${changes}`);
   revalidatePath("/", "layout");
   return { ok: `Pembayaran diperbarui. ${changes}.` };

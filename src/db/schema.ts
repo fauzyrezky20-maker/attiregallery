@@ -185,6 +185,8 @@ export const payments = sqliteTable("payments", {
   status: text("status").$type<(typeof PAYMENT_STATUS)[number]>().notNull().default("pending"),
   proofUrl: text("proof_url"),
   note: text("note"),
+  /** Jenis pembayaran di laporan (mis. DP, Pelunasan, Denda); kosong = otomatis dari isi pesanan. */
+  category: text("category"),
   paidAt: integer("paid_at", { mode: "timestamp_ms" }),
   createdAt: createdAt(),
 });

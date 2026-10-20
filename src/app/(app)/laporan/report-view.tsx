@@ -74,13 +74,14 @@ export function SalesTable({ r, links = true, actions }: { r: R; links?: boolean
       <CardContent>
         {r.sales.length === 0 ? <Empty>Tidak ada pemasukan pada periode ini.</Empty> : (
           <Table>
-            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
+            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Jenis</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.sales.map((x) => (
                 <TR key={x.id}>
                   <TD className="whitespace-nowrap">{fmtDateTime(x.paidAt)}</TD>
                   <TD>{links ? <Link className="font-mono text-xs text-primary hover:underline" href={`/pesanan/${x.orderId}`}>#{x.orderId.slice(0, 8)}</Link> : `#${x.orderId.slice(0, 8)}`}</TD>
                   <TD>{x.customer}</TD>
+                  <TD>{x.category ?? "Sewa"}{x.items && <div className="text-xs text-muted-foreground">{x.items}</div>}</TD>
                   <TD>{METHOD_LABEL[x.method]}</TD>
                   <TD className="text-right">{rupiah(x.amount)}</TD>
                   <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { fmtDateTime, toLocalInput } from "@/lib/utils";
+import { IncomeCategory } from "./income-category";
 import { editExpenseAction, editIncomeAction, editPaymentAction } from "./actions";
 
 export type EditKind = "pemasukan" | "pengeluaran" | "pembayaran";
@@ -42,7 +43,7 @@ function Shell({ title, cancel, children, note }: { title: string; cancel: strin
 
 const pctValue = (n: number | null | undefined) => (n ? String(n) : "");
 
-export async function EditIncomeCard({ id, cancel, categories, customerNames }: { id: string; cancel: string; categories: string[]; customerNames: string[] }) {
+export async function EditIncomeCard({ id, cancel, categories, customerNames, products }: { id: string; cancel: string; categories: string[]; customerNames: string[]; products: { name: string; category: string | null; price: number }[] }) {
   const x = await db.query.incomes.findFirst({ where: eq(schema.incomes.id, id) });
   if (!x) return <Shell title="Edit pemasukan" cancel={cancel}><p className="text-sm text-muted-foreground">Data tidak ditemukan (mungkin sudah dihapus).</p></Shell>;
   return (
@@ -50,10 +51,7 @@ export async function EditIncomeCard({ id, cancel, categories, customerNames }: 
       <ActionForm action={editIncomeAction}>
         <input type="hidden" name="id" value={x.id} />
         <Field label="Tanggal"><Input type="date" name="date" defaultValue={x.date} required /></Field>
-        <Field label="Jenis">
-          <Input name="category" list="edit-inc-cat" defaultValue={x.category} required />
-          <datalist id="edit-inc-cat">{categories.map((c) => <option key={c} value={c} />)}</datalist>
-        </Field>
+        <Field label="Jenis"><IncomeCategory general={categories} products={products} initial={x.category} /></Field>
         <Field label="Harga sebelum potongan (Rp)"><Input name="amount" type="number" min={1} max={100000000} step={1} defaultValue={x.grossAmount ?? x.amount} required /></Field>
         <Field label="Persen potongan (%)"><Input name="percent" type="number" min={0} max={100} step="any" inputMode="decimal" defaultValue={pctValue(x.discountPct)} placeholder="0" /></Field>
         <Field label="Metode">
@@ -90,7 +88,7 @@ export async function EditExpenseCard({ id, cancel, categories }: { id: string; 
   );
 }
 
-export async function EditPaymentCard({ id, cancel }: { id: string; cancel: string }) {
+export async function EditPaymentCard({ id, cancel, categories }: { id: string; cancel: string; categories: string[] }) {
   const x = await db.query.payments.findFirst({ where: eq(schema.payments.id, id) });
   if (!x) return <Shell title="Edit pembayaran kasir" cancel={cancel}><p className="text-sm text-muted-foreground">Data tidak ditemukan.</p></Shell>;
   const fromSavings = x.method === "tabungan";
@@ -98,6 +96,11 @@ export async function EditPaymentCard({ id, cancel }: { id: string; cancel: stri
     <Shell title={`Edit pembayaran kasir #${x.orderId.slice(0, 8)}`} cancel={cancel} note="Data sewa dan stok kebaya tidak ikut berubah">
       <ActionForm action={editPaymentAction}>
         <input type="hidden" name="id" value={x.id} />
+        <Field label="Jenis" hint="Mis. DP, Pelunasan, Denda. Kebaya yang disewa diubah dari halaman pesanan.">
+          <Select name="category" defaultValue={x.category ?? "Sewa"}>
+            {[...new Set([...categories, x.category ?? "Sewa"])].map((c) => <option key={c} value={c}>{c}</option>)}
+          </Select>
+        </Field>
         <Field label="Tanggal & jam bayar"><Input type="datetime-local" name="paidAt" defaultValue={x.paidAt ? toLocalInput(x.paidAt) : ""} required /></Field>
         {fromSavings ? (
           <>

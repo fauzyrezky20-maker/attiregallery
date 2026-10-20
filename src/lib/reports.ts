@@ -41,7 +41,8 @@ export async function financeReport(from: string, to: string) {
     db
       .select({
         id: payments.id, paidAt: payments.paidAt, method: payments.method, amount: payments.amount, orderId: orders.id,
-        customer: customers.name, orderStatus: orders.status,
+        customer: customers.name, orderStatus: orders.status, category: payments.category,
+        items: sql<string | null>`(select group_concat(p.name || case when oi.quantity > 1 then ' (' || oi.quantity || 'x)' else '' end, ', ') from order_items oi join products p on p.id = oi.product_id where oi.order_id = ${orders.id})`,
       })
       .from(payments)
       .innerJoin(orders, eq(orders.id, payments.orderId))

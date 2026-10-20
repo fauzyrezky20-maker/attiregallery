@@ -37,10 +37,10 @@ export async function GET(req: Request) {
   });
   if (r.sales.length) {
   autoTable(doc, {
-      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Metode", "Nominal", "Porsi"]],
-      body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, METHOD[x.method] ?? x.method, rupiah(x.amount), pct(x.amount, r.income)]),
-      foot: [["", "", "", "Subtotal", rupiah(r.salesTotal), pct(r.salesTotal, r.income)]],
-      columnStyles: { 4: { halign: "right" }, 5: { halign: "right" } },
+      startY: lastY() + 4, headStyles: head, footStyles: head, head: [["Waktu", "Pesanan", "Pelanggan", "Jenis", "Metode", "Nominal", "Porsi"]],
+      body: r.sales.map((x) => [ts(x.paidAt), `#${x.orderId.slice(0, 8)}`, x.customer, `${x.category ?? "Sewa"}${x.items ? `\n${x.items}` : ""}`, METHOD[x.method] ?? x.method, rupiah(x.amount), pct(x.amount, r.income)]),
+      foot: [["", "", "", "", "Subtotal", rupiah(r.salesTotal), pct(r.salesTotal, r.income)]],
+      columnStyles: { 5: { halign: "right" }, 6: { halign: "right" } },
     });
   }
   if (r.manualRows.length) {

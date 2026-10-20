@@ -85,8 +85,8 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
               )}
             />
           </div>
-          {edit?.kind === "pemasukan" ? <EditIncomeCard id={edit.id} cancel={base} categories={INCOME_CATS} customerNames={customerNames} />
-            : edit?.kind === "pembayaran" ? <EditPaymentCard id={edit.id} cancel={base} />
+          {edit?.kind === "pemasukan" ? <EditIncomeCard id={edit.id} cancel={base} categories={INCOME_CATS} customerNames={customerNames} products={productList} />
+            : edit?.kind === "pembayaran" ? <EditPaymentCard id={edit.id} cancel={base} categories={INCOME_CATS} />
             : (
           <Card className="h-fit">
             <CardHeader><CardTitle>Catat pemasukan</CardTitle></CardHeader>

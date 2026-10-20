@@ -12,9 +12,24 @@ type Product = { name: string; category: string | null; price: number };
  * Item sewa bisa lebih dari 1; nominal terisi otomatis dengan jumlah harga sewanya
  * dan jenis tersimpan sebagai "Sewa A, B (2x)".
  */
-export function IncomeCategory({ general, products }: { general: string[]; products: Product[] }) {
-  const [base, setBase] = useState("Sewa");
-  const [items, setItems] = useState<string[]>([]);
+/** "Sewa A (2x), B" → ["A", "A", "B"] bila semua nama cocok dengan produk; selain itu null. */
+function parseItems(v: string, products: Product[]) {
+  if (!v.startsWith("Sewa ")) return null;
+  const out: string[] = [];
+  for (const part of v.slice(5).split(", ")) {
+    const m = /^(.*) \((\d+)x\)$/.exec(part);
+    const name = m ? m[1] : part;
+    if (!products.some((p) => p.name === name)) return null;
+    for (let i = 0; i < (m ? Number(m[2]) : 1); i++) out.push(name);
+  }
+  return out;
+}
+
+export function IncomeCategory({ general, products, initial }: { general: string[]; products: Product[]; initial?: string }) {
+  const parsed = initial ? parseItems(initial, products) : null;
+  const generalList = initial && !parsed && !general.includes(initial) ? [initial, ...general] : general;
+  const [base, setBase] = useState(initial && !parsed ? initial : "Sewa");
+  const [items, setItems] = useState<string[]>(parsed ?? []);
   const ref = useRef<HTMLInputElement>(null);
 
   // Setelah pemasukan tersimpan form di-reset: kosongkan juga item sewa yang dipilih.
@@ -51,7 +66,7 @@ export function IncomeCategory({ general, products }: { general: string[]; produ
       <input ref={ref} type="hidden" name="category" value={value} />
       {items.length === 0 && (
         <Select value={base} onChange={(e) => setBase(e.target.value)} aria-label="Jenis pemasukan">
-          {general.map((c) => <option key={c} value={c}>{c}</option>)}
+          {generalList.map((c) => <option key={c} value={c}>{c}</option>)}
         </Select>
       )}
       {items.length > 0 && (
