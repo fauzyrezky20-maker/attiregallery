@@ -78,6 +78,13 @@
       "when": 1792504042878,
       "tag": "0010_attendance_photo",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1792504575326,
+      "tag": "0011_finance_edits",
+      "breakpoints": true
     }
   ]
 }

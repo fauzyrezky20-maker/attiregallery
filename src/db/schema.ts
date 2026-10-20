@@ -201,6 +201,20 @@ export const expenses = sqliteTable("expenses", {
   createdAt: createdAt(),
 });
 
+/** Jejak perubahan laporan keuangan (edit/hapus), supaya koreksi kasir/penginput bisa dilacak pemilik. */
+export const financeEdits = sqliteTable("finance_edits", {
+  id: id(),
+  /** pemasukan | pengeluaran | pembayaran */
+  kind: text("kind").notNull(),
+  recordId: text("record_id").notNull(),
+  /** ubah | hapus */
+  action: text("action").notNull(),
+  userName: text("user_name"),
+  /** Ringkasan perubahan, mis. "Nominal: Rp 250.000 → Rp 200.000; Metode: Tunai → QRIS" */
+  changes: text("changes").notNull(),
+  createdAt: createdAt(),
+});
+
 /** Pemasukan yang dicatat manual (mis. data lama sebelum aplikasi dipakai), di luar pembayaran pesanan. */
 export const incomes = sqliteTable(
   "incomes",

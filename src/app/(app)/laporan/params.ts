@@ -1,6 +1,6 @@
 import { resolvePeriod, type Period } from "@/lib/reports";
 
-export type ReportSearch = { periode?: string; dari?: string; sampai?: string };
+export type ReportSearch = { periode?: string; dari?: string; sampai?: string; edit?: string };
 
 export function readPeriod(sp: ReportSearch) {
   const custom = sp.dari && sp.sampai && (sp.periode === "kustom" || !sp.periode);

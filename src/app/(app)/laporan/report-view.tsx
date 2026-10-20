@@ -67,14 +67,14 @@ export function ExpenseTable({ r, actions }: { r: R; actions?: (id: string) => R
   );
 }
 
-export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
+export function SalesTable({ r, links = true, actions }: { r: R; links?: boolean; actions?: (id: string) => React.ReactNode }) {
   return (
     <Card>
       <CardHeader><CardTitle>Pembayaran pesanan ({r.sales.length} transaksi)</CardTitle></CardHeader>
       <CardContent>
         {r.sales.length === 0 ? <Empty>Tidak ada pemasukan pada periode ini.</Empty> : (
           <Table>
-            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Porsi</TH></TR></THead>
+            <THead><TR><TH>Waktu</TH><TH>Pesanan</TH><TH>Pelanggan</TH><TH>Metode</TH><TH className="text-right">Nominal</TH><TH className="text-right">Porsi</TH>{actions && <TH></TH>}</TR></THead>
             <TBody>
               {r.sales.map((x) => (
                 <TR key={x.id}>
@@ -84,6 +84,7 @@ export function SalesTable({ r, links = true }: { r: R; links?: boolean }) {
                   <TD>{METHOD_LABEL[x.method]}</TD>
                   <TD className="text-right">{rupiah(x.amount)}</TD>
                   <TD className="text-right text-xs text-muted-foreground">{pct(x.amount, r.income)}</TD>
+                  {actions && <TD className="text-right">{actions(x.id)}</TD>}
                 </TR>
               ))}
             </TBody>

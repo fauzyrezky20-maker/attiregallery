@@ -152,6 +152,7 @@ export const resetDataAction = safeAction(async (fd) => {
     if (finance) {
       await tx.delete(s.incomes).run();
       await tx.delete(s.expenses).run();
+      await tx.delete(s.financeEdits).run();
       done.push("pemasukan manual & pengeluaran");
     }
     if (savings) {

@@ -14,14 +14,18 @@ import { fmtDate, todayStr } from "@/lib/utils";
 import { addExpenseAction, addIncomeAction, deleteExpenseAction, deleteIncomeAction, importFinanceAction } from "./actions";
 import { PeriodForm } from "./period-form";
 import { readPeriod, type ReportSearch } from "./params";
+import { EditExpenseCard, EditIncomeCard, EditLink, EditLog, EditPaymentCard, readEdit } from "./edit-forms";
 import { ExpenseByCategory, ExpenseTable, IncomeByMethod, ManualIncomeTable, SalesTable, SectionTitle, Summary } from "./report-view";
 
 const INCOME_CATS = ["Sewa", "DP", "Pelunasan", "Denda", "Jasa make up", "Lain-lain"];
 const EXPENSE_CATS = ["Laundry & perawatan", "Gaji karyawan", "Sewa tempat", "Listrik & air", "Pembelian kebaya", "Perbaikan/jahit", "Promosi", "Lain-lain"];
 
 export default async function LaporanPage({ searchParams }: { searchParams: Promise<ReportSearch> }) {
-  await requireUser("laporan");
-  const { period, from, to } = readPeriod(await searchParams);
+  const user = await requireUser("laporan");
+  const owner = user.role === "pemilik";
+  const sp = await searchParams;
+  const { period, from, to } = readPeriod(sp);
+  const edit = owner ? readEdit(sp.edit) : null;
   const [r, customerRows, productList] = await Promise.all([
     financeReport(from, to),
     db.selectDistinct({ name: schema.customers.name }).from(schema.customers).orderBy(asc(schema.customers.name)),
@@ -29,6 +33,8 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
   ]);
   const customerNames = customerRows.map((c) => c.name);
   const qs = `dari=${from}&sampai=${to}`;
+  const base = `periode=kustom&${qs}`;
+  const editBtn = (kind: "pemasukan" | "pengeluaran" | "pembayaran") => owner ? (id: string) => <EditLink base={base} kind={kind} id={id} /> : undefined;
   // Saat melihat bulan lain (mis. September), tanggal isian otomatis ikut bulan itu.
   const today = todayStr();
   const entryDate = today >= from && today <= to ? today : from;
@@ -68,14 +74,20 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
         <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
           <div className="grid content-start gap-6">
             <IncomeByMethod r={r} />
-            <SalesTable r={r} />
+            <SalesTable r={r} actions={editBtn("pembayaran")} />
             <ManualIncomeTable
               r={r}
               actions={(id) => (
-                <ActionForm action={deleteIncomeAction} confirm="Hapus pemasukan ini?"><input type="hidden" name="id" value={id} /><SubmitButton size="sm" variant="ghost" className="text-destructive">Hapus</SubmitButton></ActionForm>
+                <div className="flex justify-end">
+                  {owner && <EditLink base={base} kind="pemasukan" id={id} />}
+                  <ActionForm action={deleteIncomeAction} confirm="Hapus pemasukan ini?"><input type="hidden" name="id" value={id} /><SubmitButton size="sm" variant="ghost" className="text-destructive">Hapus</SubmitButton></ActionForm>
+                </div>
               )}
             />
           </div>
+          {edit?.kind === "pemasukan" ? <EditIncomeCard id={edit.id} cancel={base} categories={INCOME_CATS} customerNames={customerNames} />
+            : edit?.kind === "pembayaran" ? <EditPaymentCard id={edit.id} cancel={base} />
+            : (
           <Card className="h-fit">
             <CardHeader><CardTitle>Catat pemasukan</CardTitle></CardHeader>
             <CardContent>
@@ -98,6 +110,7 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
               </ActionForm>
             </CardContent>
           </Card>
+            )}
         </div>
 
         <SectionTitle>Pengeluaran</SectionTitle>
@@ -107,10 +120,14 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
             <ExpenseTable
               r={r}
               actions={(id) => (
-                <ActionForm action={deleteExpenseAction} confirm="Hapus pengeluaran ini?"><input type="hidden" name="id" value={id} /><SubmitButton size="sm" variant="ghost" className="text-destructive">Hapus</SubmitButton></ActionForm>
+                <div className="flex justify-end">
+                  {owner && <EditLink base={base} kind="pengeluaran" id={id} />}
+                  <ActionForm action={deleteExpenseAction} confirm="Hapus pengeluaran ini?"><input type="hidden" name="id" value={id} /><SubmitButton size="sm" variant="ghost" className="text-destructive">Hapus</SubmitButton></ActionForm>
+                </div>
               )}
             />
           </div>
+          {edit?.kind === "pengeluaran" ? <EditExpenseCard id={edit.id} cancel={base} categories={EXPENSE_CATS} /> : (
           <Card className="h-fit">
             <CardHeader><CardTitle>Catat pengeluaran</CardTitle></CardHeader>
             <CardContent>
@@ -127,7 +144,9 @@ export default async function LaporanPage({ searchParams }: { searchParams: Prom
               </ActionForm>
             </CardContent>
           </Card>
+          )}
         </div>
+        {owner && <EditLog />}
       </div>
     </>
   );
