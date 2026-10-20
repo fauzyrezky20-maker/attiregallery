@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input, Select } from "@/components/ui/input";
 import { Empty } from "@/components/ui/table";
 import { availableQty } from "@/lib/orders";
-import { getSettings } from "@/lib/settings";
+import { getSettings, mapsLink } from "@/lib/settings";
 import { waLink } from "@/lib/catalog";
 import { fmtDate, rupiah, todayStr } from "@/lib/utils";
 import { rentalDays, rentalEndDate, rentalPeriods, settleDeadline } from "@/lib/pricing";
@@ -145,7 +145,7 @@ export default async function KatalogPesan({ searchParams }: {
                 </ClearCartLink>
               ) : <p className="text-sm text-muted-foreground">Cek ketersediaan dulu, lalu tombol pesan via WhatsApp muncul.</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Hubungi toko untuk memesan{settings.address ? ` di ${settings.address}` : ""}.</p>
+              <p className="text-sm text-muted-foreground">Hubungi toko untuk memesan{settings.address ? <> di <a href={mapsLink(settings) ?? undefined} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{settings.address}</a></> : ""}.</p>
             )}
             <RentalInfo s={settings} />
             <GuideAndTerms s={settings} />

@@ -26,7 +26,9 @@ export const saveProfileAction = safeAction(async (fd) => {
   const storeName = str(fd.get("storeName"));
   if (!storeName) throw new BizError("Nama toko wajib diisi.");
   const instagram = str(fd.get("instagram"))?.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//, "").replace(/\/$/, "") ?? null;
-  await save({ storeName, address: str(fd.get("address")), phone: str(fd.get("phone")), instagram, ...(logoUrl ? { logoUrl } : {}) });
+  const mapsUrl = str(fd.get("mapsUrl"));
+  if (mapsUrl && !/^https?:\/\//i.test(mapsUrl)) throw new BizError("Link Google Maps harus diawali https://");
+  await save({ storeName, address: str(fd.get("address")), mapsUrl, phone: str(fd.get("phone")), instagram, ...(logoUrl ? { logoUrl } : {}) });
   return { ok: "Profil toko disimpan." };
 });
 

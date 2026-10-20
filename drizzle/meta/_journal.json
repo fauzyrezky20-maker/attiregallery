@@ -64,6 +64,13 @@
       "when": 1792503061064,
       "tag": "0008_product_size_note",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1792503447422,
+      "tag": "0009_store_maps_url",
+      "breakpoints": true
     }
   ]
 }

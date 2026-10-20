@@ -22,3 +22,10 @@ export async function getSettings() {
   return { ...s, rentalGuide: s.rentalGuide ?? DEFAULT_GUIDE };
 }
 export type Settings = Awaited<ReturnType<typeof getSettings>>;
+
+/** Link Google Maps toko: link yang diisi di Pengaturan, atau pencarian nama toko + alamat. */
+export function mapsLink(s: { mapsUrl: string | null; address: string | null; storeName: string }) {
+  if (s.mapsUrl) return s.mapsUrl;
+  if (!s.address) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${s.storeName}, ${s.address}`)}`;
+}

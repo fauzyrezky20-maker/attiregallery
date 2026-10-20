@@ -352,6 +352,8 @@ export const storeSettings = sqliteTable("store_settings", {
   pickupFrom: text("pickup_from").notNull().default("16:00"),
   pickupUntil: text("pickup_until").notNull().default("20:00"),
   instagram: text("instagram"),
+  /** Link Google Maps toko (opsional); kosong = dicari dari nama toko + alamat. */
+  mapsUrl: text("maps_url"),
   /** Rekening tujuan tabungan toko & tautan aplikasi m-banking */
   savingsAccount: text("savings_account"),
   mbankingUrl: text("mbanking_url"),

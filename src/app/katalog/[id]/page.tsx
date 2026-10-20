@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { availableQty } from "@/lib/orders";
-import { getSettings } from "@/lib/settings";
+import { getSettings, mapsLink } from "@/lib/settings";
 import { waLink } from "@/lib/catalog";
 import { fmtDate, rupiah, todayStr } from "@/lib/utils";
 import { rentalDays, rentalEndDate, rentalPeriods } from "@/lib/pricing";
@@ -104,7 +104,7 @@ export default async function KatalogDetail({ params, searchParams }: {
               Pesan item ini via WhatsApp
             </a>
           ) : (
-            <p className="text-sm text-muted-foreground">Hubungi toko untuk memesan{settings.address ? ` di ${settings.address}` : ""}.</p>
+            <p className="text-sm text-muted-foreground">Hubungi toko untuk memesan{settings.address ? <> di <a href={mapsLink(settings) ?? undefined} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-foreground">{settings.address}</a></> : ""}.</p>
           )}
           <p className="text-xs text-muted-foreground">Mau sewa lebih dari 1 item? Tekan &quot;Tambah ke daftar pesanan&quot; di tiap item, lalu pesan sekaligus.</p>
           <RentalInfo s={settings} />

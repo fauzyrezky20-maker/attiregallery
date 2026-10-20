@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AtSign, MapPin, Phone } from "lucide-react";
 import { CartBar } from "./cart";
-import { getSettings } from "@/lib/settings";
+import { getSettings, mapsLink } from "@/lib/settings";
 import { waLink } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,11 @@ export default async function KatalogLayout({ children }: { children: React.Reac
       <footer className="border-t bg-card pb-16">
         <div className="mx-auto grid max-w-6xl gap-1 px-4 py-4 text-sm text-muted-foreground">
           <p className="font-medium text-foreground">{s.storeName}</p>
-          {s.address && <p className="flex items-start gap-2"><MapPin className="mt-0.5 size-4 shrink-0" />{s.address}</p>}
+          {s.address && (
+            <a href={mapsLink(s) ?? undefined} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 hover:text-foreground">
+              <MapPin className="mt-0.5 size-4 shrink-0" /><span><span className="underline underline-offset-2">{s.address}</span> <span className="whitespace-nowrap text-primary">· Buka di Google Maps</span></span>
+            </a>
+          )}
           {s.phone && <p className="flex items-center gap-2"><Phone className="size-4 shrink-0" />{s.phone}</p>}
           {s.instagram && (
             <a href={`https://instagram.com/${s.instagram}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-foreground">

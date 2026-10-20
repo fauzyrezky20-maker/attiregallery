@@ -49,6 +49,7 @@ export default async function PengaturanPage() {
               </div>
               <Field label="Nama toko"><Input name="storeName" defaultValue={s.storeName} required /></Field>
               <Field label="Alamat"><Textarea name="address" rows={2} defaultValue={s.address ?? ""} /></Field>
+              <Field label="Link Google Maps (opsional)" hint="Di Google Maps buka lokasi toko → Bagikan → Salin link, lalu tempel di sini. Kalau kosong, pelanggan diarahkan ke pencarian alamat di atas."><Input name="mapsUrl" type="url" placeholder="https://maps.app.goo.gl/..." defaultValue={s.mapsUrl ?? ""} /></Field>
               <Field label="No. telepon / WhatsApp"><Input name="phone" defaultValue={s.phone ?? ""} /></Field>
               <Field label="Instagram" hint="Tanpa @, mis. attiregalleryyy"><Input name="instagram" defaultValue={s.instagram ?? ""} /></Field>
               <SubmitButton>Simpan profil</SubmitButton>
