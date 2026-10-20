@@ -1,8 +1,8 @@
 import { ActionForm, SubmitButton } from "@/components/action-form";
-import { Field, Input } from "@/components/ui/input";
+import { Field, Input, Textarea } from "@/components/ui/input";
 import { saveProductAction } from "./actions";
 
-type P = { id: string; name: string; category: string | null; pricePerDay: number; stockTotal: number; status: string } | null;
+type P = { id: string; name: string; category: string | null; pricePerDay: number; sizeNote: string | null; stockTotal: number; status: string } | null;
 
 export function ProductForm({ product, categories }: { product: P; categories: string[] }) {
   return (
@@ -12,6 +12,9 @@ export function ProductForm({ product, categories }: { product: P; categories: s
       <Field label="Kategori / koleksi">
         <Input name="category" list="kategori" defaultValue={product?.category ?? ""} placeholder="Mis. Kebaya Kutubaru" />
         <datalist id="kategori">{categories.map((c) => <option key={c} value={c} />)}</datalist>
+      </Field>
+      <Field label="Keterangan ukuran" hint="Tampil juga di katalog pelanggan. Mis. LD 90 cm, LP 75 cm, panjang 60 cm, atau S–M (allsize).">
+        <Textarea name="sizeNote" rows={2} defaultValue={product?.sizeNote ?? ""} placeholder="Mis. Lingkar dada 90 cm, lingkar pinggang 75 cm, panjang 60 cm" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Harga sewa per 3 hari (Rp)"><Input name="pricePerDay" type="number" min={0} step={1} defaultValue={product?.pricePerDay ?? ""} required /></Field>

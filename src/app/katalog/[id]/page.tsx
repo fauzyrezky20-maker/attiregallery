@@ -76,6 +76,7 @@ export default async function KatalogDetail({ params, searchParams }: {
           <div className="grid gap-2">
             <h1 className="text-2xl font-semibold leading-tight">{product.name}</h1>
             {product.category && <p className="text-sm text-muted-foreground">{product.category}</p>}
+            {product.sizeNote && <p className="whitespace-pre-line rounded-md bg-muted px-3 py-2 text-sm"><span className="font-medium">Ukuran:</span> {product.sizeNote}</p>}
             <p className="text-xl font-semibold">{rupiah(product.pricePerDay)}<span className="text-sm font-normal text-muted-foreground">/{settings.defaultRentDays} hari</span></p>
             <div><AvailabilityBadge status={product.status} available={product.stockAvailable} /></div>
           </div>

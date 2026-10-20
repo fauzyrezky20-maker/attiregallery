@@ -79,6 +79,7 @@ export default async function ProdukPage({ searchParams }: { searchParams: Promi
                 <div className="grid gap-1 p-3">
                   <p className="line-clamp-2 font-medium leading-tight">{r.name}</p>
                   <p className="text-xs text-muted-foreground">{r.category ?? "-"}</p>
+                  {r.sizeNote && <p className="line-clamp-2 text-xs">Ukuran: {r.sizeNote}</p>}
                   <p className="text-sm font-semibold">{rupiah(r.pricePerDay)}<span className="font-normal text-muted-foreground">/3 hari</span></p>
                   <div className="flex items-center justify-between gap-1">
                     <StatusBadge status={r.status} />

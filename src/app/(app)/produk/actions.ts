@@ -30,7 +30,7 @@ export const saveProductAction = safeAction(async (fd) => {
   if (!name) throw new BizError("Nama kebaya wajib diisi.");
   const stockTotal = Math.max(0, toInt(fd.get("stockTotal"), 1));
   const maintenance = fd.get("maintenance") === "on";
-  const base = { name, category: str(fd.get("category")), pricePerDay: Math.max(0, toInt(fd.get("pricePerDay"))), stockTotal };
+  const base = { name, category: str(fd.get("category")), sizeNote: str(fd.get("sizeNote")), pricePerDay: Math.max(0, toInt(fd.get("pricePerDay"))), stockTotal };
 
   if (id) {
     const p = await db.query.products.findFirst({ where: eq(products.id, id) });

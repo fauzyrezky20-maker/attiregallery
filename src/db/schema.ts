@@ -115,6 +115,8 @@ export const products = sqliteTable("products", {
   category: text("category"),
   pricePerDay: integer("price_per_day").notNull().default(0),
   stockTotal: integer("stock_total").notNull().default(1),
+  /** Keterangan ukuran, mis. "LD 90 cm, LP 75 cm, panjang 60 cm" atau "S–M (allsize)" */
+  sizeNote: text("size_note"),
   stockAvailable: integer("stock_available").notNull().default(1),
   status: text("status").$type<(typeof PRODUCT_STATUS)[number]>().notNull().default("tersedia"),
   createdAt: createdAt(),

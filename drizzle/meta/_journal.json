@@ -57,6 +57,13 @@
       "when": 1791818274560,
       "tag": "0007_expense_gross",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1792503061064,
+      "tag": "0008_product_size_note",
+      "breakpoints": true
     }
   ]
 }
