@@ -8,6 +8,7 @@ import { safeAction } from "@/lib/action";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { BizError } from "@/lib/orders";
 import { str, todayStr } from "@/lib/utils";
+import { deleteUpload, saveUpload } from "@/lib/upload";
 
 const { attendances: a, employees: e } = schema;
 
@@ -26,10 +27,11 @@ export const checkInAction = safeAction(async (fd) => {
   const date = todayStr();
   const ex = await db.query.attendances.findFirst({ where: and(eq(a.employeeId, emp.id), eq(a.date, date)) });
   if (ex?.checkIn) throw new BizError("Sudah check-in hari ini.");
-  if (ex) await db.update(a).set({ checkIn: new Date(), status: "hadir" }).where(eq(a.id, ex.id));
-  else await db.insert(a).values({ employeeId: emp.id, date, checkIn: new Date(), status: "hadir" });
+  const photoUrl = await saveUpload(fd.get("photo"), "absensi");
+  if (ex) await db.update(a).set({ checkIn: new Date(), status: "hadir", ...(photoUrl ? { photoUrl } : {}) }).where(eq(a.id, ex.id));
+  else await db.insert(a).values({ employeeId: emp.id, date, checkIn: new Date(), status: "hadir", photoUrl });
   revalidatePath("/absensi");
-  return { ok: `${emp.name} check-in.` };
+  return { ok: `${emp.name} check-in${photoUrl ? " dengan foto" : ""}.` };
 });
 
 export const checkOutAction = safeAction(async (fd) => {
@@ -52,4 +54,18 @@ export const setAttendanceStatusAction = safeAction(async (fd) => {
   else await db.insert(a).values({ employeeId: emp.id, date, status, note });
   revalidatePath("/absensi");
   return { ok: "Status kehadiran disimpan." };
+});
+
+/** Tambah / ganti foto absensi hari ini (mis. lupa foto saat check-in). */
+export const attendancePhotoAction = safeAction(async (fd) => {
+  const emp = await guard(String(fd.get("employeeId")));
+  const photoUrl = await saveUpload(fd.get("photo"), "absensi");
+  if (!photoUrl) throw new BizError("Pilih atau ambil foto dulu.");
+  const date = todayStr();
+  const ex = await db.query.attendances.findFirst({ where: and(eq(a.employeeId, emp.id), eq(a.date, date)) });
+  if (ex) await db.update(a).set({ photoUrl }).where(eq(a.id, ex.id));
+  else await db.insert(a).values({ employeeId: emp.id, date, status: "hadir", photoUrl });
+  if (ex?.photoUrl) await deleteUpload(ex.photoUrl);
+  revalidatePath("/absensi");
+  return { ok: `Foto ${emp.name} tersimpan.` };
 });

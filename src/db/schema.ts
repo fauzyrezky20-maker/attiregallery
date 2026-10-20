@@ -300,6 +300,8 @@ export const attendances = sqliteTable(
     checkOut: integer("check_out", { mode: "timestamp_ms" }),
     status: text("status").$type<(typeof ATTENDANCE_STATUS)[number]>().notNull().default("hadir"),
     note: text("note"),
+    /** Foto karyawan saat check-in (bukti hadir) */
+    photoUrl: text("photo_url"),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex("attendance_emp_date_uq").on(t.employeeId, t.date)],

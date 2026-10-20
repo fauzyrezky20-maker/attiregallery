@@ -46,7 +46,7 @@ const ALLOWED: Record<string, string> = {
 const MAX_BYTES = 8 * 1024 * 1024;
 
 /** Simpan file unggahan; mengembalikan URL yang bisa dipakai di <img>/<a>. */
-export async function saveUpload(file: FormDataEntryValue | null, folder: "produk" | "bukti" | "toko" | "fitting" | "tabungan") {
+export async function saveUpload(file: FormDataEntryValue | null, folder: "produk" | "bukti" | "toko" | "fitting" | "tabungan" | "absensi") {
   if (!file || typeof file === "string" || file.size === 0) return null;
   // Beberapa HP mengirim file tanpa tipe; tebak dari nama file.
   const byName = Object.entries(ALLOWED).find(([, e]) => file.name.toLowerCase().endsWith(e) || (e === ".jpg" && /\.jpe?g$/i.test(file.name)));

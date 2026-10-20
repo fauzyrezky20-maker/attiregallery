@@ -11,7 +11,7 @@ import { Empty, Table, TBody, TD, TH, THead, TR } from "@/components/ui/table";
 import { getAllowedMenus, requireUser } from "@/lib/session";
 import { resolvePeriod } from "@/lib/reports";
 import { diffDays, fmtDate, fmtTime, todayStr } from "@/lib/utils";
-import { checkInAction, checkOutAction, setAttendanceStatusAction } from "./actions";
+import { attendancePhotoAction, checkInAction, checkOutAction, setAttendanceStatusAction } from "./actions";
 
 const { attendances: a, employees: e } = schema;
 
@@ -33,6 +33,8 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
     const minutes = rows.reduce((t, r) => t + (r.checkIn && r.checkOut ? (r.checkOut.getTime() - r.checkIn.getTime()) / 60000 : 0), 0);
     return { emp, count, hours: Math.round(minutes / 6) / 10 };
   });
+  const photos = range.filter((r) => r.photoUrl).sort((x, y) => (y.checkIn?.getTime() ?? 0) - (x.checkIn?.getTime() ?? 0) || y.date.localeCompare(x.date));
+  const nameOf = new Map(emps.map((x) => [x.id, x.name]));
   const totalDays = diffDays(from, (to < today ? to : today)) + 1;
 
   return (
@@ -48,14 +50,37 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
                   const r = byEmp.get(emp.id);
                   return (
                     <li key={emp.id} className="flex flex-col gap-3 py-3 md:flex-row md:items-center md:justify-between">
-                      <div>
+                      <div className="flex items-center gap-3">
+                        {r?.photoUrl ? (
+                          <a href={r.photoUrl} target="_blank" className="shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={r.photoUrl} alt={`Foto ${emp.name}`} className="size-14 rounded-full border object-cover" />
+                          </a>
+                        ) : (
+                          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-muted text-lg font-medium text-muted-foreground">{emp.name.slice(0, 1).toUpperCase()}</div>
+                        )}
+                        <div>
                         <p className="font-medium">{emp.name} <span className="text-sm font-normal text-muted-foreground">{emp.position}</span></p>
                         <p className="text-sm text-muted-foreground">
                           {r ? <><StatusBadge status={r.status} /> {r.checkIn && `Masuk ${fmtTime(r.checkIn)}`}{r.checkOut && ` · Keluar ${fmtTime(r.checkOut)}`}{r.note && ` · ${r.note}`}</> : "Belum absen"}
                         </p>
+                        </div>
                       </div>
                       <div className="flex flex-wrap items-start gap-2">
-                        {!r?.checkIn && <ActionForm action={checkInAction}><input type="hidden" name="employeeId" value={emp.id} /><SubmitButton size="sm">Check-in</SubmitButton></ActionForm>}
+                        {!r?.checkIn && (
+                          <ActionForm action={checkInAction} className="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="employeeId" value={emp.id} />
+                            <label className="text-xs text-muted-foreground">Foto karyawan <Input type="file" name="photo" accept="image/*" className="h-8 w-52 py-1 text-xs" /></label>
+                            <SubmitButton size="sm">Check-in</SubmitButton>
+                          </ActionForm>
+                        )}
+                        {r?.checkIn && (
+                          <ActionForm action={attendancePhotoAction} className="flex flex-wrap items-center gap-2">
+                            <input type="hidden" name="employeeId" value={emp.id} />
+                            <Input type="file" name="photo" accept="image/*" aria-label={r.photoUrl ? "Ganti foto" : "Tambah foto"} className="h-8 w-52 py-1 text-xs" />
+                            <SubmitButton size="sm" variant="outline">{r.photoUrl ? "Ganti foto" : "Simpan foto"}</SubmitButton>
+                          </ActionForm>
+                        )}
                         {r?.checkIn && !r.checkOut && <ActionForm action={checkOutAction}><input type="hidden" name="employeeId" value={emp.id} /><SubmitButton size="sm" variant="secondary">Check-out</SubmitButton></ActionForm>}
                         <ActionForm action={setAttendanceStatusAction} className="flex flex-wrap gap-2">
                           <input type="hidden" name="employeeId" value={emp.id} />
@@ -88,6 +113,19 @@ export default async function AbsensiPage({ searchParams }: { searchParams: Prom
                 {rekap.map((r) => <TR key={r.emp.id}><TD className="font-medium">{r.emp.name}</TD>{ATTENDANCE_STATUS.map((s) => <TD key={s} className="text-right">{r.count[s]}</TD>)}<TD className="text-right">{r.hours} jam</TD></TR>)}
               </TBody>
             </Table>
+            <p className="mb-2 mt-6 text-sm font-semibold">Foto absensi ({photos.length})</p>
+            {photos.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada foto di periode ini.</p> : (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
+                {photos.map((r) => (
+                  <a key={r.id} href={r.photoUrl!} target="_blank" className="grid gap-1 text-xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={r.photoUrl!} alt="" loading="lazy" className="aspect-square w-full rounded-md border object-cover" />
+                    <span className="font-medium leading-tight">{nameOf.get(r.employeeId)}</span>
+                    <span className="text-muted-foreground">{fmtDate(r.date)}{r.checkIn ? `, ${fmtTime(r.checkIn)}` : ""}</span>
+                  </a>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
